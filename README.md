@@ -75,6 +75,7 @@ To build and run this stack, you need the following environment:
 + **OS:** Ubuntu 22.04
 + **ROS 2**: Humble
 + **Simulator:** CARLA (Version 0.9.14+) & [`carla-ros-bridge`](https://github.com/ttgamage/carla-ros-bridge)
+  + **Required Assets:** You must have a custom CARLA map populated with Formula Student standard cones (Yellow, Blue, Orange) and a compatible vehicle model loaded into your CARLA server. This repository does **not** provide these 3D assets.
 + **Python Libraries:** `ultralytics`, `scipy`, `numpy`, `opencv-python`
 + **C++ Libraries:** Eigen3, PCL
 
@@ -103,7 +104,7 @@ Because this is an active research repository, certain configurations are curren
 For instance:
 1. **YOLO Weights Path:** In `src/camera_detection/camera_detector_node.py`, update `MODEL_PATH` to point your local `best.pt` file.
 2. **Telemetry CSV Paths:** In `src/path_planning/src/state_machine_node.cpp`, update the string variables `filename` and the `telemetry_file.open()` path to point to valid directories on your machine where the node has write permissions.
-3. **Vehicle Spawn & Sensor Configuration:** The `carla_setup/objects.json` file contains the hardcoded starting coordinates for the vehicle, as well as the relative spatial transforms for all sensors (RGB camera, LiDAR, IMU). If you test on a different CARLA map or use a different vehicle chassis, you must update these coordinates accordingly to ensure safe spawning and accurate sensor fusion.
+3. **Vehicle Spawn & Sensor Configuration:** The `carla_setup/objects.json` file contains the hardcoded starting coordinates for the vehicle, as well as the relative spatial transforms for all sensors (RGB camera, LiDAR, IMU). You must update these coordinates accordingly to ensure safe spawning and accurate sensor fusion on your specific vehicle model and custom map.
 4. **Vehicle Kinematics (Wheelbase):** The controllers rely on a hardcoded wheelbase (`L = 1.6` meters). If the vehicle model used in CARLA, has different wheelbase, you must update this constant in both `src/path_planning/src/control/mpc_controller.hpp` and `src/path_planning/src/control/pure_pursuit.hpp` to ensure accurate steering geometry.
 5. **Algorithm Tuning & Weights:** All algorithmic parameters (such as EKF covariances, GraphSLAM optimization weights and MPC penalty factors) are currently tuned for a specific vehicle model and host machine setup. Thus, it is essential to re-tune these weights in the source code to ensure system stability. 
 
