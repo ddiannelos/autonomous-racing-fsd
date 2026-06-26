@@ -13,7 +13,7 @@ The system is designed to drive an autonomous vehicle through an unknown track u
 ---
 
 ## System Architecture
-The pipeline is built on **ROS 2** and tested in the **CARLA Simulator**. The autonomous navigation relies on a core sensor suite consisting of an **RGB Camera** and a **180° LiDAR**. The software stack is divided into four main subsystems:
+The pipeline is built on **ROS 2** and tested in the **CARLA Simulator**. The autonomous navigation relies on a core sensor suite consisting of an **RGB Camera** and a **180° LiDAR** for perception, coupled with an **IMU** and **GNSS** for localization. The software stack is divided into four main subsystems:
 
 ### 1. Perception
 ![Sensor Fusion in RViz](images/rviz2_sensor_fusion.png)
