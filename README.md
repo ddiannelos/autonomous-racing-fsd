@@ -104,7 +104,7 @@ For instance:
 1. **YOLO Weights Path:** In `src/camera_detection/camera_detector_node.py`, update `MODEL_PATH` to point your local `best.pt` file.
 2. **Telemetry CSV Paths:** In `src/path_planning/src/state_machine_node.cpp`, update the string variables `filename` and the `telemetry_file.open()` path to point to valid directories on your machine where the node has write permissions.
 3. **Vehicle Spawn & Sensor Configuration:** The `carla_setup/objects.json` file contains the hardcoded starting coordinates for the vehicle, as well as the relative spatial transforms for all sensors (RGB camera, LiDAR, IMU). If you test on a different CARLA map or use a different vehicle chassis, you must update these coordinates accordingly to ensure safe spawning and accurate sensor fusion
-4. **Vehicle Kinematics (Wheelbase):** The controllers rely on a hardcoded wheelbase (`L = 1.6` meters). If you change the vehicle model in CARLA, you must update this constant in both `src/path_planning/src/control/mpc_controller.hpp` and `src/path_planning/src/control/pure_pursuit.hpp` to ensure accurate steering geometry.The controllers rely on a c
+4. **Vehicle Kinematics (Wheelbase):** The controllers rely on a hardcoded wheelbase (`L = 1.6` meters). If you change the vehicle model in CARLA, you must update this constant in both `src/path_planning/src/control/mpc_controller.hpp` and `src/path_planning/src/control/pure_pursuit.hpp` to ensure accurate steering geometry.
 
 Moreover, all ROS 2 topic names used are hardcoded to the local machine setup. You must update **ALL** the topic names before trying to run the project; otherwise, the appropriate messages will not be received or sent.
 
