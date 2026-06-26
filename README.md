@@ -1,6 +1,6 @@
 # Formula Student Driverless (FSD) Autonomous Racing Stack
 
-> **A complete ROS 2 autonomous racing pipeline featuring YOLOv8 perception, GraphSLAM mapping, and Model Predictive Control (MPC) trajectory optimization.**
+> **A complete ROS 2 autonomous racing pipeline designed for unknown track navigation at the physical limits of the vehicle. The localization and mapping stack relies on YOLOv8-LiDAR sensor fusion and EKF (IMU-GNSS) backed GraphSLAM localization. Navigation is handled in two phases: an initial exploration lap using Delaunay Triangulation, B-splines and Pure Pursuit/PID, followed by an optimization lap utilizing a line optimizer, velocity profiler and Model Predictive Control (MPC).**
 
 ## About the Project
 This repository contains the software stack developed for my master's thesis on autonomous racing path planning under Formula Student rules. The inspiration behind this topic stems from my time as a member of the **Centaurus Racing Team** at the **University of Thessaly** (Volos, Greece). The system architecture, mathematical implementation and code within this repository represent my own independent research and development.
