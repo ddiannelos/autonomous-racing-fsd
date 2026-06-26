@@ -102,11 +102,12 @@ make install
 Because this is an active research repository, certain configurations are currently hardcoded to a specific local machine setup. **You must update these paths and hyperparameters in the source code before building the project.**
 
 For instance:
-1. **YOLO Weights Path:** In `src/camera_detection/camera_detector_node.py`, update `MODEL_PATH` to point your local `best.pt` file.
+1. **YOLO Weights Path:** In `src/camera_detection/camera_detector_node.py`, update `MODEL_PATH` to point to your local `best.pt` file.
 2. **Telemetry CSV Paths:** In `src/path_planning/src/state_machine_node.cpp`, update the string variables `filename` and the `telemetry_file.open()` path to point to valid directories on your machine where the node has write permissions.
-3. **Vehicle Spawn & Sensor Configuration:** The `carla_setup/objects.json` file contains the hardcoded starting coordinates for the vehicle, as well as the relative spatial transforms for all sensors (RGB camera, LiDAR, IMU). You must update these coordinates accordingly to ensure safe spawning and accurate sensor fusion on your specific vehicle model and custom map.
-4. **Vehicle Kinematics (Wheelbase):** The controllers rely on a hardcoded wheelbase (`L = 1.6` meters). If the vehicle model used in CARLA, has different wheelbase, you must update this constant in both `src/path_planning/src/control/mpc_controller.hpp` and `src/path_planning/src/control/pure_pursuit.hpp` to ensure accurate steering geometry.
-5. **Algorithm Tuning & Weights:** All algorithmic parameters (such as EKF covariances, GraphSLAM optimization weights and MPC penalty factors) are currently tuned for a specific vehicle model and host machine setup. Thus, it is essential to re-tune these weights in the source code to ensure system stability. 
+3. **Map/Environment Name:** The `carla_setup/run_bridge.sh` script specifies which CARLA map the bridge should load. You must update the name of the town parameter in `ros launch` to match the exact name of your custom Formula Student map asset.
+4. **Vehicle Asset & Sensor Configuration:** The `carla_setup/objects.json` file contains the hardcoded blueprint identifier for the vehicle, its starting coordinates and the relative spatial transformations for all sensors (RGB camera, LiDAR, IMU, GNSS). You must update the vehicle blueprint name and these coordinates to match your specific 3D vehicle asset to ensure safe spawning and accurate sensor fusion.
+5. **Vehicle Kinematics (Wheelbase):** The controllers rely on a hardcoded wheelbase (`L = 1.6` meters). If the vehicle model used in CARLA, has different wheelbase, you must update this constant in both `src/path_planning/src/control/mpc_controller.hpp` and `src/path_planning/src/control/pure_pursuit.hpp` to ensure accurate steering geometry.
+6. **Algorithm Tuning & Weights:** All algorithmic parameters (such as EKF covariances, GraphSLAM optimization weights and MPC penalty factors) are currently tuned for a specific vehicle model and host machine setup. Thus, it is essential to re-tune these weights in the source code to ensure system stability. 
 
 Moreover, all ROS 2 topic names used are hardcoded to the local machine setup. You must update **ALL** the topic names before trying to run the project; otherwise, the appropriate messages will not be received or sent.
 
