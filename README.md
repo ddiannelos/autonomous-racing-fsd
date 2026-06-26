@@ -59,6 +59,7 @@ autonomous-racing-fsd/
 │   └── train.py
 └── src/                          # ROS 2 Workspace
     ├── bringup/                  # Master launch files
+    |   └── rviz/                 # Saved RViz configuration
     ├── camera_detection/         # YOLOv8 ROS 2 node
     ├── interfaces/               # Custom Cone and ConeArray messages
     ├── lidar_perception/         # PCL clustering node
@@ -142,6 +143,13 @@ chmod +x run_bridge.sh
 ```bash
 source install/setup.bash
 ros2 launch bringup simulation.launch.py
+```
+
+**Terminal 4 (Optional - Visualization):** To view the live sensor fusion, SLAM mapping, Pure Pursuit lookahead and MPC trajectory predictions as seen in the documentation screenshots, launch RViz in a new terminal:
+```bash
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+rviz2 -d src/bringup/rviz/fsd_default.rviz
 ```
 
 ### Offline Perception Training (YOLOv8)
