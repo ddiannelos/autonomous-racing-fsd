@@ -28,7 +28,8 @@ rosdep update || echo "rosdep udpate failed (maybe already locked), continuing..
 rosdep install --from-paths src --ignore-src -r -y
 
 # 4. Build the workspace
-colcon build
+colcon build --packages-select interfaces
+colcon build --symlink-install --packages-skip interfaces
 
 echo "Build complete. To use the workspace, run the following in your terminal:"
 echo "source install/setup.bash"
