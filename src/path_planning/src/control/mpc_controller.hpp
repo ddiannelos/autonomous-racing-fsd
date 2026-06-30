@@ -168,9 +168,7 @@ bool MPCController::init(const MPCState& initial_state, const std::vector<Eigen:
     for (int j = 0; j < nx; ++j) P_triplets.push_back({N * nx + j, N * nx + j, Q.diagonal()[j]});
     P.setFromTriplets(P_triplets.begin(), P_triplets.end());
 
-    is_initialized = true;
     solve(initial_state, opt_path, speed_profile);
-    is_initialized = false;
 
     // Configure and factorize the solver
     solver.settings()->setVerbosity(false);
