@@ -32,3 +32,4 @@ colcon build
 
 echo "Build complete. To use the workspace, run the following in your terminal:"
 echo "source install/setup.bash"
+echo "ros2 launch bringup simulation.launch.py"
