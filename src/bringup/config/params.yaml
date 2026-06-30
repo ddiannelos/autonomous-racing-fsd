@@ -3,129 +3,129 @@
   ros__parameters:
     topics:
       # Sensors (Inputs)
-      camera_image: "/carla/hero/rgb_front/image"
-      camera_info: "/carla/hero/rgb_front/camera_info"
-      lidar_raw: "/carla/hero/lidar"
-      imu: "/carla/hero/imu"
-      gnss: "/carla/hero/gnss"
+      camera_image: "/carla/hero/rgb_front/image"        # RGB Image - camera topic name
+      camera_info: "/carla/hero/rgb_front/camera_info"   # Camera intrinsic calibration matrix
+      lidar_raw: "/carla/hero/lidar"                     # 3D point cloud - LiDAR topic
+      imu: "/carla/hero/imu"                             # Linear acceleration and angular velocity - IMU topic
+      gnss: "/carla/hero/gnss"                           # GPS coordinates - GNSS topic
 
       # Perception Pipeline
-      camera_boxes: "/perception/camera/bounding_boxes"
-      camera_debug: "/perception/camera/debug_image"
-      lidar_centroids: "/perception/lidar"
-      perception_cones: "/perception/cone_list"
-      perception_markers: "/perception/markers"
+      camera_boxes: "/perception/camera/bounding_boxes"  # 2D Bounding boxes detected by YOLO
+      camera_debug: "/perception/camera/debug_image"     # Image with drawn bounding boxes for visualization
+      lidar_centroids: "/perception/lidar"               # 3D coordinates of clustered LiDAR cones
+      perception_cones: "/perception/cone_list"          # Fused 3D cones with assigned color classes
+      perception_markers: "/perception/markers"          # RViz 3D markers for fused cones
 
       # Localization and Mapping Pipeline
-      ekf_odom: "/localization/ekf/odom"
-      slam_odom: "/localization/slam/odom"
-      slam_cones: "/localization/slam/cone_list"
-      lap_count: "/localization/slam/lap_count"
+      ekf_odom: "/localization/ekf/odom"                 # High-frequency, smooth odometry from the EKF
+      slam_odom: "/localization/slam/odom"               # Low-frequency, highly accurate odometry from GraphSLAM
+      slam_cones: "/localization/slam/cone_list"         # Fully optimized global track map (cones)
+      lap_count: "/localization/slam/lap_count"          # Current lap number triggered by loop closure
 
       # Planning & Control
-      control_cmd: "/carla/hero/vehicle_control_cmd"
-      viz_slam_path: "/localization/viz/slam_path"
-      viz_cone_cloud: "/localization/viz/cone_cloud"
-      viz_point: "/exploration/viz/point"
-      viz_circle: "/exploration/viz/circle"
-      viz_mpc: "/optimization/viz/mpc_trajectory"
+      control_cmd: "/carla/hero/vehicle_control_cmd"     # Output steering, throttle, and brake commands
+      viz_slam_path: "/localization/viz/slam_path"       # RViz trajectory line of the vehicle's history
+      viz_cone_cloud: "/localization/viz/cone_cloud"     # RViz PointCloud representation of the SLAM map
+      viz_point: "/exploration/viz/point"                # RViz marker for the Pure Pursuit target point
+      viz_circle: "/exploration/viz/circle"              # RViz marker for the Pure Pursuit lookahead radius
+      viz_mpc: "/optimization/viz/mpc_trajectory"        # RViz line showing the MPC's predicted future path
 
-# Node specific parameters
+# Node-Specific parameters
 camera_node:
   ros__parameters:
-    model_path: "/home/sir/ros2_ws/yolo/cone_detection/yolov8n_run2/weights/best.pt"
-    confidence_threshold: 0.4
+    model_path: "/home/sir/ros2_ws/yolo/cone_detection/yolov8n_run2/weights/best.pt" # Absolute path to YOLO weights
+    confidence_threshold: 0.4           # Minimum neural network confidence score to accept a detected cone
 
 lidar_detector:
   ros__parameters:
-    roi:
-      x_min: 0.0
-      x_max: 25.0
-      y_min: -5.0
-      y_max: 5.0
-      z_min: -1.0
-      z_max: 1.0
+    roi:                                # Region of Interest (meters relative to the LiDAR sensor)
+      x_min: 0.0                        # Ignore points behind the vehicle
+      x_max: 25.0                       # Ignore points further than 25m ahead
+      y_min: -5.0                       # Ignore points further than 5m to the right
+      y_max: 5.0                        # Ignore points further than 5m to the left
+      z_min: -1.0                       # Lower boundary to filter out the ground plane
+      z_max: 1.0                        # Upper boundary to filter out tall obstacles (bridges, trees)
     ransac:
-      distance_threshold: 0.15
+      distance_threshold: 0.15          # Max distance (meters) for a point to be considered part of the ground plane
     clustering:
-      tolerance: 0.3
-      min_size: 3
-      max_size: 150
+      tolerance: 0.3                    # Radius (meters) to group neighboring points into a single cone cluster
+      min_size: 3                       # Minimum points required to form a valid cone
+      max_size: 150                     # Maximum points allowed (filters out large objects like walls/cars)
 
 sensor_fusion_node:
   ros__parameters:
-    sync_slop: 0.15
+    sync_slop: 0.15                     # Max time difference (seconds) between camera and LiDAR messages to sync
 
 ekf_node:
   ros__parameters:
-    initial_state:
-      x: 194.5
-      y: -296.3
-      velocity: 0.0
-      yaw: 3.14159265359
+    initial_state:                      # Initial physical pose of the vehicle inside the simulation
+      x: 194.5                          # Starting global X coordinate
+      y: -296.3                         # Starting global Y coordinate
+      velocity: 0.0                     # Starting linear velocity (m/s)
+      yaw: 3.14159265359                # Starting heading in radians (Pi = facing West)
     gnss:
-      max_origin_samples: 20
-    process_noise:
-      q_x: 0.1
-      q_y: 0.1
-      q_v: 0.1
-      q_yaw: 0.05
-    measurement_noise:
-      r_x: 1.0
-      r_y: 1.0
+      max_origin_samples: 20            # Number of initial GNSS readings to average for the local tangent plane origin
+    process_noise:                      # EKF Q-Matrix: Higher values = trust the IMU less, trust the GNSS more
+      q_x: 0.1                          # Variance in X position prediction
+      q_y: 0.1                          # Variance in Y position prediction
+      q_v: 0.1                          # Variance in velocity prediction
+      q_yaw: 0.05                       # Variance in yaw (heading) prediction
+    measurement_noise:                  # EKF R-Matrix: Higher values = trust the GNSS less, trust the IMU more
+      r_x: 1.0                          # Variance in GNSS X measurements
+      r_y: 1.0                          # Variance in GNSS Y measurements
 
 slam_node:
   ros__parameters:
-    sensor_offset_x: 1.6
+    sensor_offset_x: 1.6                # Longitudinal distance (meters) from the rear axle to the LiDAR/Camera
     tuning:
-      odom_info_x: 1.0
-      odom_info_y: 1.0
-      odom_info_yaw: 100.0
-      min_translation: 0.3
-      min_rotation: 0.1
-      huber_odom: 0.3
-      huber_obs: 1.0
-      window_size: 30
+      odom_info_x: 1.0                  # Confidence in forward movement odometry (Information Matrix)
+      odom_info_y: 1.0                  # Confidence in lateral movement odometry (Information Matrix)
+      odom_info_yaw: 100.0              # Confidence in yaw rotation odometry (High = trust EKF yaw heavily)
+      min_translation: 0.3              # Meters moved before dropping a new pose graph node
+      min_rotation: 0.1                 # Radians turned before dropping a new pose graph node
+      huber_odom: 0.3                   # Huber loss delta for odometry edges (mitigates wheel slip outliers)
+      huber_obs: 1.0                    # Huber loss delta for observation edges (mitigates false cone matches)
+      window_size: 30                   # Max historical poses kept in the active optimization window for real-time speed
 
 slam_visualization_node:
   ros__parameters:
-    max_path_size: 1000
+    max_path_size: 1000                 # Maximum number of historical poses drawn in the RViz trajectory line
 
 state_machine_node:
   ros__parameters:
     race:
-      max_laps: 4
+      max_laps: 4                       # Total number of laps to complete before triggering FINISHED state
     csv:
-      cones_path: "/home/sir/ros2_ws/scripts/csv/cones.csv"
-      telemetry_path: "/home/sir/ros2_ws/scripts/csv/telemetry.csv"
+      cones_path: "/home/sir/ros2_ws/scripts/csv/cones.csv"         # Output path to save the final SLAM map
+      telemetry_path: "/home/sir/ros2_ws/scripts/csv/telemetry.csv" # Output path to log vehicle telemetry data
     kinematics:
-      wheelbase: 1.5
-    exploration:
-      max_steering_angle: 1.22
-      target_speed: 4.5
-      local_radius: 10.0
-      max_edge_distance: 6.0
-      lookahead_distance: 4.0
+      wheelbase: 1.5                    # Distance (meters) between the front and rear axles
+    exploration:                        # Parameters for Lap 1 (Safe Track Discovery)
+      max_steering_angle: 1.22          # Physical maximum steering angle of the tires in radians (~70 degrees)
+      target_speed: 4.5                 # Constant cruising speed (m/s) for the mapping lap
+      local_radius: 10.0                # How far (meters) the planner looks ahead to build the local Delaunay mesh
+      max_edge_distance: 6.0            # Maximum allowable distance (meters) between two cones to form a valid track boundary
+      lookahead_distance: 4.0           # Pure Pursuit lookahead distance (meters) for path tracking
       pid:
-        kp: 1.5
-        ki: 0.05
-        kd: 0.1
-    optimization:
-      car_width: 1.6
-      safety_margin: 0.5
-      friction_mu: 0.6
-      max_speed: 14.0
-      max_accel: 8.0
-      max_decel: 12.0
-      max_steer: 1.22
+        kp: 1.5                         # Proportional gain: Reacts to current speed error
+        ki: 0.05                        # Integral gain: Reacts to accumulated long-term speed error
+        kd: 0.1                         # Derivative gain: Reacts to the rate of change in speed error to prevent overshoot
+    optimization:                       # Parameters for Lap 2+ (Aggressive MPC Racing Line)
+      car_width: 1.6                    # Physical width of the vehicle (meters) used for boundary collision avoidance
+      safety_margin: 0.5                # Extra buffer distance (meters) to keep away from the cones
+      friction_mu: 0.6                  # Estimated coefficient of friction between the tires and the track surface
+      max_speed: 14.0                   # Absolute top speed limit (m/s) for the vehicle
+      max_accel: 8.0                    # Maximum forward acceleration limit (m/s^2) for the powertrain
+      max_decel: 12.0                   # Maximum braking deceleration limit (m/s^2) for the brakes
+      max_steer: 1.22                   # Maximum steering angle (radians) constraint for the optimizer
       mpc:
-        N: 10
-        dt: 0.1
-        q_x: 250.0
-        q_y: 250.0
-        q_yaw: 100.0
-        q_v: 50.0
-        r_steer: 100.0
-        r_accel: 10.0
-        r_steer_rate: 20000.0
-        r_accel_rate: 25.0
+        N: 10                           # Prediction horizon (number of future steps the MPC looks ahead)
+        dt: 0.1                         # Time step (seconds) between each MPC prediction step
+        q_x: 250.0                      # State penalty for lateral X deviation from the optimal racing line
+        q_y: 250.0                      # State penalty for longitudinal Y deviation from the optimal racing line
+        q_yaw: 100.0                    # State penalty for heading deviation from the optimal racing line
+        q_v: 50.0                       # State penalty for velocity deviation from the optimal speed profile
+        r_steer: 100.0                  # Actuator penalty for using large steering angles
+        r_accel: 10.0                   # Actuator penalty for using large throttle/brake inputs
+        r_steer_rate: 20000.0           # Rate penalty to prevent jerky/oscillating steering inputs (High = smoother steering)
+        r_accel_rate: 25.0              # Rate penalty to prevent jerky/oscillating throttle/brake inputs
