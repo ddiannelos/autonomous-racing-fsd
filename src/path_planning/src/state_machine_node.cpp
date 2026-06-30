@@ -294,7 +294,7 @@ void StateMachineNode::publish_mpc_trajectory(const std::vector<Point> &trajecto
 StateMachineNode::StateMachineNode() : Node("state_machine_node") {
     // Declare Exploration Parameters
     this->declare_parameter<std::string>("topics.slam_odom", "/localization/slam/odom");
-    this->declare_parameter<std::string>("topics.cone_list", "/localization/slam/cone_list");
+    this->declare_parameter<std::string>("topics.slam_cones", "/localization/slam/cone_list");
     this->declare_parameter<std::string>("topics.lap_count", "/localization/slam/lap_count");
     this->declare_parameter<std::string>("topics.control_cmd", "/carla/hero/vehicle_control_cmd");
     this->declare_parameter<std::string>("topics.viz_point", "/exploration/viz/point");
@@ -316,7 +316,7 @@ StateMachineNode::StateMachineNode() : Node("state_machine_node") {
     this->declare_parameter<double>("exploration.pid.ki", 0.05);
     this->declare_parameter<double>("exploration.pid.kd", 0.1);
 
-    // 2. Declare Optimization Parameters
+    // Declare Optimization Parameters
     this->declare_parameter<double>("optimization.car_width", 1.6);
     this->declare_parameter<double>("optimization.safety_margin", 0.5);
     this->declare_parameter<double>("optimization.friction_mu", 0.6);
@@ -338,7 +338,7 @@ StateMachineNode::StateMachineNode() : Node("state_machine_node") {
 
     // Read General Parameters
     odom_topic_ = this->get_parameter("topics.slam_odom").as_string();
-    cone_topic_ = this->get_parameter("topics.cone_list").as_string();
+    cone_topic_ = this->get_parameter("topics.slam_cones").as_string();
     lap_topic_ = this->get_parameter("topics.lap_count").as_string();
     control_topic_ = this->get_parameter("topics.control_cmd").as_string();
     point_viz_topic_ = this->get_parameter("topics.viz_point").as_string();

@@ -19,9 +19,9 @@ class ConeDetectorNode(Node):
 
         # Declare parameters
         self.declare_parameter('model_path', '/home/sir/ros2_ws/yolo/cone_detection/yolov8n_run2/weights/best.pt')
-        self.declare_parameter('topics.sub_image', '/carla/hero/rgb_front/image')
-        self.declare_parameter('topics.pub_bounding_boxes', '/perception/camera/bounding_boxes')
-        self.declare_parameter('topics.pub_debug_boxes', '/perception/camera/debug_image')
+        self.declare_parameter('topics.camera_image', '/carla/hero/rgb_front/image')
+        self.declare_parameter('topics.camera_boxes', '/perception/camera/bounding_boxes')
+        self.declare_parameter('topics.camera_debug', '/perception/camera/debug_image')
         self.declare_parameter('confidence_threshold', 0.4)
 
         # Read Parameters
@@ -29,9 +29,9 @@ class ConeDetectorNode(Node):
         model_path = self.get_parameter('model_path').value
 
         # Topic Names
-        sub_image_topic = self.get_parameter('topics.sub_image').value
-        pub_boxes_topic = self.get_parameter('topics.pub_bounding_boxes').value
-        pub_debug_topic = self.get_parameter('topics.pub_debug_boxes').value
+        sub_image_topic = self.get_parameter('topics.camera_image').value
+        pub_boxes_topic = self.get_parameter('topics.camera_boxes').value
+        pub_debug_topic = self.get_parameter('topics.camera_debug').value
 
         # Minimum Confidence score (0.0 - 1.0) to accept detection
         self.conf_threshold = self.get_parameter('confidence_threshold').value

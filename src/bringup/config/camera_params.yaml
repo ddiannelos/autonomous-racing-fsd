@@ -1,8 +1,0 @@
-camera_node:
-  ros__parameters:
-    model_path: "/home/sir/ros2_ws/yolo/cone_detection/yolov8n_run2/weights/best.pt"
-    confidence_threshold: 0.4
-    topics:
-      sub_image: "/carla/hero/rgb_front/image"
-      pub_bounding_boxes: "/perception/camera/bounding_boxes"
-      pub_debug_boxes: "/perception/camera/debug_image"

@@ -1,8 +1,0 @@
-slam_visualization_node:
-  ros__parameters:
-    max_path_size: 1000
-    topics:
-      sub_odom: "/localization/slam/odom"
-      sub_cone_list: "/localization/slam/cone_list"
-      pub_slam_path: "/localization/viz/slam_path"
-      pub_cone_cloud: "/localization/viz/cone_cloud"

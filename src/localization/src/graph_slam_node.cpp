@@ -192,11 +192,11 @@ public:
      */
     GraphSlamNode() : Node("slam_node") {
         // 1. Declare Parameters
-        this->declare_parameter<std::string>("topics.pub_odom", "/localization/slam/odom");
-        this->declare_parameter<std::string>("topics.sub_odom", "/localization/ekf/odom");
-        this->declare_parameter<std::string>("topics.pub_cone_list", "/localization/slam/cone_list");
-        this->declare_parameter<std::string>("topics.sub_cone_list", "/perception/cone_list");
-        this->declare_parameter<std::string>("topics.pub_lap_count", "/localization/slam/lap_count");
+        this->declare_parameter<std::string>("topics.slam_odom", "/localization/slam/odom");
+        this->declare_parameter<std::string>("topics.ekf_odom", "/localization/ekf/odom");
+        this->declare_parameter<std::string>("topics.slam_cones", "/localization/slam/cone_list");
+        this->declare_parameter<std::string>("topics.perception_cones", "/perception/cone_list");
+        this->declare_parameter<std::string>("topics.lap_count", "/localization/slam/lap_count");
 
         this->declare_parameter<double>("sensor_offset_x", 1.6);
 
@@ -210,11 +210,11 @@ public:
         this->declare_parameter<int>("tuning.window_size", 30);
 
         // 2. Read Parameters
-        odom_pub_topic_ = this->get_parameter("topics.pub_odom").as_string();
-        odom_sub_topic_ = this->get_parameter("topics.sub_odom").as_string();
-        cones_pub_topic_ = this->get_parameter("topics.pub_cone_list").as_string();
-        cones_sub_topic_ = this->get_parameter("topics.sub_cone_list").as_string();
-        lap_counter_topic_ = this->get_parameter("topics.pub_lap_count").as_string();
+        odom_pub_topic_ = this->get_parameter("topics.slam_odom").as_string();
+        odom_sub_topic_ = this->get_parameter("topics.ekf_odom").as_string();
+        cones_pub_topic_ = this->get_parameter("topics.slam_cones").as_string();
+        cones_sub_topic_ = this->get_parameter("topics.perception_cones").as_string();
+        lap_counter_topic_ = this->get_parameter("topics.lap_count").as_string();
 
         sensor_offset_x_ = this->get_parameter("sensor_offset_x").as_double();
 

@@ -109,17 +109,17 @@ public:
      */
     SlamVisualizationNode() : Node("slam_visualization_node") {
         // 1. Declare Parameters
-        this->declare_parameter<std::string>("topics.sub_odom", "/localization/slam/odom");
-        this->declare_parameter<std::string>("topics.sub_cone_list", "/localization/slam/cone_list");
-        this->declare_parameter<std::string>("topics.pub_slam_path", "/localization/viz/slam_path");
-        this->declare_parameter<std::string>("topics.pub_cone_cloud", "/localization/viz/cone_cloud");
+        this->declare_parameter<std::string>("topics.slam_odom", "/localization/slam/odom");
+        this->declare_parameter<std::string>("topics.slam_cones", "/localization/slam/cone_list");
+        this->declare_parameter<std::string>("topics.viz_slam_path", "/localization/viz/slam_path");
+        this->declare_parameter<std::string>("topics.viz_cone_cloud", "/localization/viz/cone_cloud");
         this->declare_parameter<int>("max_path_size", 1000);
 
         // 2. Read Parameters
-        odom_sub_topic_ = this->get_parameter("topics.sub_odom").as_string();
-        cones_sub_topic_ = this->get_parameter("topics.sub_cone_list").as_string();
-        path_pub_topic_ = this->get_parameter("topics.pub_slam_path").as_string();
-        cloud_pub_topic_ = this->get_parameter("topics.pub_cone_cloud").as_string();
+        odom_sub_topic_ = this->get_parameter("topics.slam_odom").as_string();
+        cones_sub_topic_ = this->get_parameter("topics.slam_cones").as_string();
+        path_pub_topic_ = this->get_parameter("topics.viz_slam_path").as_string();
+        cloud_pub_topic_ = this->get_parameter("topics.viz_cone_cloud").as_string();
         max_path_size_ = this->get_parameter("max_path_size").as_int();
 
         // 3. Initialize Publishers and Subscribers using dynamic topics

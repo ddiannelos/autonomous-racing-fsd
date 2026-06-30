@@ -83,9 +83,9 @@ public:
 
 EKFNode::EKFNode() : Node("ekf_node") {
     // Declare Parameters
-    this->declare_parameter<std::string>("topics.sub_imu", "/carla/hero/imu");
-    this->declare_parameter<std::string>("topics.sub_gnss", "/carla/hero/gnss");
-    this->declare_parameter<std::string>("topics.pub_odom", "/localization/ekf/odom");
+    this->declare_parameter<std::string>("topics.imu", "/carla/hero/imu");
+    this->declare_parameter<std::string>("topics.gnss", "/carla/hero/gnss");
+    this->declare_parameter<std::string>("topics.ekf_odom", "/localization/ekf/odom");
 
     this->declare_parameter<double>("initial_state.x", 194.5);
     this->declare_parameter<double>("initial_state.y", -296.3);
@@ -103,9 +103,9 @@ EKFNode::EKFNode() : Node("ekf_node") {
     this->declare_parameter<double>("measurement_noise.r_y", 1.0);
 
     // Read Parameters
-    imu_topic_ = this->get_parameter("topics.sub_imu").as_string();
-    gnss_topic_ = this->get_parameter("topics.sub_gnss").as_string();
-    odom_topic_ = this->get_parameter("topics.pub_odom").as_string();
+    imu_topic_ = this->get_parameter("topics.imu").as_string();
+    gnss_topic_ = this->get_parameter("topics.gnss").as_string();
+    odom_topic_ = this->get_parameter("topics.ekf_odom").as_string();
 
     initial_x_ = this->get_parameter("initial_state.x").as_double();
     initial_y_ = this->get_parameter("initial_state.y").as_double();

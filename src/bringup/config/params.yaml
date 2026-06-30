@@ -1,0 +1,131 @@
+# Global Shared Parameters
+/**:
+  ros__parameters:
+    topics:
+      # Sensors (Inputs)
+      camera_image: "/carla/hero/rgb_front/image"
+      camera_info: "/carla/hero/rgb_front/camera_info"
+      lidar_raw: "/carla/hero/lidar"
+      imu: "/carla/hero/imu"
+      gnss: "/carla/hero/gnss"
+
+      # Perception Pipeline
+      camera_boxes: "/perception/camera/bounding_boxes"
+      camera_debug: "/perception/camera/debug_image"
+      lidar_centroids: "/perception/lidar"
+      perception_cones: "/perception/cone_list"
+      perception_markers: "/perception/markers"
+
+      # Localization and Mapping Pipeline
+      ekf_odom: "/localization/ekf/odom"
+      slam_odom: "/localization/slam/odom"
+      slam_cones: "/localization/slam/cone_list"
+      lap_count: "/localization/slam/lap_count"
+
+      # Planning & Control
+      control_cmd: "/carla/hero/vehicle_control_cmd"
+      viz_slam_path: "/localization/viz/slam_path"
+      viz_cone_cloud: "/localization/viz/cone_cloud"
+      viz_point: "/exploration/viz/point"
+      viz_circle: "/exploration/viz/circle"
+      viz_mpc: "/optimization/viz/mpc_trajectory"
+
+# Node specific parameters
+camera_node:
+  ros__parameters:
+    model_path: "/home/sir/ros2_ws/yolo/cone_detection/yolov8n_run2/weights/best.pt"
+    confidence_threshold: 0.4
+
+lidar_detector:
+  ros__parameters:
+    roi:
+      x_min: 0.0
+      x_max: 25.0
+      y_min: -5.0
+      y_max: 5.0
+      z_min: -1.0
+      z_max: 1.0
+    ransac:
+      distance_threshold: 0.15
+    clustering:
+      tolerance: 0.3
+      min_size: 3
+      max_size: 150
+
+sensor_fusion_node:
+  ros__parameters:
+    sync_slop: 0.15
+
+ekf_node:
+  ros__parameters:
+    initial_state:
+      x: 194.5
+      y: -296.3
+      velocity: 0.0
+      yaw: 3.14159265359
+    gnss:
+      max_origin_samples: 20
+    process_noise:
+      q_x: 0.1
+      q_y: 0.1
+      q_v: 0.1
+      q_yaw: 0.05
+    measurement_noise:
+      r_x: 1.0
+      r_y: 1.0
+
+slam_node:
+  ros__parameters:
+    sensor_offset_x: 1.6
+    tuning:
+      odom_info_x: 1.0
+      odom_info_y: 1.0
+      odom_info_yaw: 100.0
+      min_translation: 0.3
+      min_rotation: 0.1
+      huber_odom: 0.3
+      huber_obs: 1.0
+      window_size: 30
+
+slam_visualization_node:
+  ros__parameters:
+    max_path_size: 1000
+
+state_machine_node:
+  ros__parameters:
+    race:
+      max_laps: 4
+    csv:
+      cones_path: "/home/sir/ros2_ws/scripts/csv/cones.csv"
+      telemetry_path: "/home/sir/ros2_ws/scripts/csv/telemetry.csv"
+    kinematics:
+      wheelbase: 1.5
+    exploration:
+      max_steering_angle: 1.22
+      target_speed: 4.5
+      local_radius: 10.0
+      max_edge_distance: 6.0
+      lookahead_distance: 4.0
+      pid:
+        kp: 1.5
+        ki: 0.05
+        kd: 0.1
+    optimization:
+      car_width: 1.6
+      safety_margin: 0.5
+      friction_mu: 0.6
+      max_speed: 14.0
+      max_accel: 8.0
+      max_decel: 12.0
+      max_steer: 1.22
+      mpc:
+        N: 10
+        dt: 0.1
+        q_x: 250.0
+        q_y: 250.0
+        q_yaw: 100.0
+        q_v: 50.0
+        r_steer: 100.0
+        r_accel: 10.0
+        r_steer_rate: 20000.0
+        r_accel_rate: 25.0

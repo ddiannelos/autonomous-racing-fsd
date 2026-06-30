@@ -4,8 +4,7 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    config_dir = os.path.join(get_package_share_directory('bringup'), 'config')
-    params = os.path.join(config_dir, 'state_machine_params.yaml')
+    config_file = os.path.join(get_package_share_directory('bringup'), 'config', 'params.yaml')
 
     return LaunchDescription([
         Node(
@@ -13,6 +12,6 @@ def generate_launch_description():
             executable='state_machine_node',
             name='planner',
             output='screen',
-            parameters=[{'use_sim_time': True}, params]
+            parameters=[{'use_sim_time': True}, config_file]
         )
     ])

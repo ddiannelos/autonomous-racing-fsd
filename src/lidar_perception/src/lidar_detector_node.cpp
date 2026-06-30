@@ -87,8 +87,8 @@ class LidarDetector : public rclcpp::Node {
     public:
         LidarDetector() : Node("lidar_detector") {
             // Declare parameters
-            this->declare_parameter<std::string>("topics.sub_lidar", "/carla/hero/lidar");
-            this->declare_parameter<std::string>("topics.pub_lidar", "/perception/lidar");
+            this->declare_parameter<std::string>("topics.lidar_raw", "/carla/hero/lidar");
+            this->declare_parameter<std::string>("topics.lidar_centroids", "/perception/lidar");
 
             this->declare_parameter<float>("roi.x_min" , 0.0);
             this->declare_parameter<float>("roi.x_max" , 25.0);
@@ -104,8 +104,8 @@ class LidarDetector : public rclcpp::Node {
             this->declare_parameter<int>("clustering.max_size", 150);
 
             // Read parameters into member variables
-            sub_topic_  = this->get_parameter("topics.sub_lidar").as_string();
-            pub_topic_ = this->get_parameter("topics.pub_lidar").as_string();
+            sub_topic_  = this->get_parameter("topics.lidar_raw").as_string();
+            pub_topic_ = this->get_parameter("topics.lidar_centroids").as_string();
 
             x_filter_min_ = this->get_parameter("roi.x_min").as_double();
             x_filter_max_ = this->get_parameter("roi.x_max").as_double();

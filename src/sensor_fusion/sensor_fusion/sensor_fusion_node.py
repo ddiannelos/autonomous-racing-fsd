@@ -28,20 +28,20 @@ class SensorFusionNode(Node):
         super().__init__('sensor_fusion_node')
 
         # Declare parameters
-        self.declare_parameter('topics.sub_bounding_boxes', '/perception/camera/bounding_boxes')
-        self.declare_parameter('topics.sub_lidar', '/perception/lidar')
-        self.declare_parameter('topics.pub_cone_list', '/perception/cone_list')
-        self.declare_parameter('topics.sub_camera_info', '/carla/hero/rgb_front/camera_info')
-        self.declare_parameter('topics.pub_markers', '/perception/markers')
+        self.declare_parameter('topics.camera_boxes', '/perception/camera/bounding_boxes')
+        self.declare_parameter('topics.lidar_centroids', '/perception/lidar')
+        self.declare_parameter('topics.perception_cones', '/perception/cone_list')
+        self.declare_parameter('topics.camera_info', '/carla/hero/rgb_front/camera_info')
+        self.declare_parameter('topics.perception_markers', '/perception/markers')
         self.declare_parameter('sync_slop', 0.15)
 
         # Read parameters
         # Topic names
-        sub_boxes_topic = self.get_parameter('topics.sub_bounding_boxes').value
-        sub_lidar_topic = self.get_parameter('topics.sub_lidar').value
-        sub_camera_info = self.get_parameter('topics.sub_camera_info').value
-        pub_cone_list = self.get_parameter('topics.pub_cone_list').value
-        pub_markers = self.get_parameter('topics.pub_markers').value
+        sub_boxes_topic = self.get_parameter('topics.camera_boxes').value
+        sub_lidar_topic = self.get_parameter('topics.lidar_centroids').value
+        sub_camera_info = self.get_parameter('topics.camera_info').value
+        pub_cone_list = self.get_parameter('topics.perception_cones').value
+        pub_markers = self.get_parameter('topics.perception_markers').value
 
         # Synchronizer slop
         sync_slop = self.get_parameter('sync_slop').value
