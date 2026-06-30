@@ -1,0 +1,18 @@
+slam_node:
+  ros__parameters:
+    sensor_offset_x: 1.6
+    topics:
+      pub_odom: "/localization/slam/odom"
+      sub_odom: "/localization/ekf/odom"
+      pub_cone_list: "/localization/slam/cone_list"
+      sub_cone_list: "/perception/cone_list"
+      pub_lap_count: "/localization/slam/lap_count"
+    tuning:
+      odom_info_x: 1.0
+      odom_info_y: 1.0
+      odom_info_yaw: 100.0
+      min_translation: 0.3
+      min_rotation: 0.1
+      huber_odom: 0.3
+      huber_obs: 1.0
+      window_size: 30

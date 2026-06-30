@@ -19,6 +19,20 @@ using Eigen::Triplet;
 typedef Eigen::Matrix<double, 5, 1> Vector5d;
 
 /**
+ * @brief Configuration struct for GraphSlam tuning parameters
+ */
+struct GraphSlamConfig {
+    double odom_info_x = 1.0;
+    double odom_info_y = 1.0;
+    double odom_info_yaw = 100.0;
+    double min_translation = 0.3;
+    double min_rotation = 0.1;
+    double huber_odom = 0.3;
+    double huber_obs = 1.0;
+    int window_size = 30;
+};
+
+/**
  * @brief Represents the vehicle's state node in the SLAM pose graph
  */
 struct Pose {
@@ -70,6 +84,8 @@ struct ObservationEdge {
  */
 class GraphSlam {
 private:
+    GraphSlamConfig config_;
+
     std::vector<Pose> poses;
     std::map<int, Landmark> landmarks;
 
@@ -129,7 +145,7 @@ private:
     void optimize_graph();
 public:
     /** @brief Constructs a new GraphSlam object and initializes the tuning matrices */
-    GraphSlam();
+    GraphSlam(const GraphSlamConfig& config = GraphSlamConfig());
 
     /** * @brief Core engine entry point. Process a new odometry state and cone array
      * @param current_odom The current EKF odometry reading (x, y, yaw)
@@ -153,15 +169,15 @@ public:
     }
 };
 
-GraphSlam::GraphSlam() {
+GraphSlam::GraphSlam(const GraphSlamConfig& config) : config_(config) {
     is_initialized = false;
     map_to_odom_offset = Vector3d::Zero();
     odom_info = Matrix3d::Zero();
 
     // Base confidence for odometry
-    odom_info(0, 0) = 1.0;   // Forward x certainty
-    odom_info(1, 1) = 1.0;   // Lateral y certainty
-    odom_info(2, 2) = 100.0; // Yaw certainty
+    odom_info(0, 0) = config_.odom_info_x;   // Forward x certainty
+    odom_info(1, 1) = config_.odom_info_y;   // Lateral y certainty
+    odom_info(2, 2) = config_.odom_info_yaw; // Yaw certainty
 }
 
 double GraphSlam::normalize_angle(double phi) {
@@ -206,8 +222,8 @@ bool GraphSlam::has_moved_enough(const Vector3d &current_odom) {
     double dtheta_check = std::abs(normalize_angle(current_odom(2) - prev_odom(2)));
     double distance_traveled = std::sqrt(dx * dx + dy * dy);
 
-    // Drop a new graph node every 0.3 meters or 0.1 radians of rotation
-    return (distance_traveled >= 0.3 || dtheta_check >= 0.1);
+    // Drop a new graph node based on parameterized movement thresholds
+    return (distance_traveled >= config_.min_translation || dtheta_check >= config_.min_rotation);
 }
 
 void GraphSlam::add_odometry_edge(const Vector3d &current_odom, int prev_id, int curr_id) {
@@ -388,7 +404,7 @@ void GraphSlam::optimize_graph() {
                 0, 0, 1;
 
         // Apply Huber loss to down-weight outliers
-        double weight = weight_huber(e, 0.3);
+        double weight = weight_huber(e, config_.huber_odom);
         Matrix3d omega = edge.information * weight;
 
         // Add blocks to Information Matrix H
@@ -405,7 +421,6 @@ void GraphSlam::optimize_graph() {
     // Process Observation Constraints
     for (const auto &edge : observation_edges) {
         int idx_i = edge.pose_id * 3;
-        // int idx_l = lm_idx_map[edge.landmark_id];
 
         Vector3d xi = poses[edge.pose_id].pose;
         Vector2d lm = landmarks[edge.landmark_id].position;
@@ -434,7 +449,7 @@ void GraphSlam::optimize_graph() {
             -s, c;
 
         // Apply Huber loss
-        double weight = weight_huber(e, 1.0);
+        double weight = weight_huber(e, config_.huber_obs);
         Matrix2d omega = edge.information * weight;
 
         // Optimize the pose
@@ -561,15 +576,12 @@ void GraphSlam::process(const Vector3d &current_odom, const std::vector<Observat
 
     prev_odom = current_odom;
 
-    // If in localization mode, cap the graph to the last 30 poses
+    // If in localization mode, cap the graph to the last X poses
     if (localization_mode) {
-        slide_window(30);
+        slide_window(config_.window_size);
     }
 
     // Graph Optimization phase
-    // Always optimize if loop closure triggered
-    // Always optimize if localization mode
-    // Optimize every 10 poses during the mapping phase
     if (optimization_triggered || localization_mode || curr_id % 10 == 0) {
         // If the optimization is triggered then optimize the graph more times
         int max_iters = (optimization_triggered) ? 3 : 1;

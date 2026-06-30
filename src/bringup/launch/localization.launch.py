@@ -6,6 +6,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     config_dir = os.path.join(get_package_share_directory('bringup'), 'config')
     ekf_params = os.path.join(config_dir, 'ekf_params.yaml')
+    graph_slam_params = os.path.join(config_dir, 'graph_slam_params.yaml')
 
     return LaunchDescription([
         # Extended Kalman Filter Node
@@ -22,7 +23,7 @@ def generate_launch_description():
             executable='slam',
             name='slam_node',
             output='screen',
-            parameters=[{'use_sim_time': True}]
+            parameters=[{'use_sim_time': True}, graph_slam_params]
         ),
         # Visualization node for debugging
         Node(

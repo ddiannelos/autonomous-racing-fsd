@@ -10,13 +10,6 @@
 
 #include "graphslam.hpp"
 
-// ROS 2 Topic constants
-const std::string ODOM_PUB_TOPIC = "/localization/slam/odom";
-const std::string ODOM_SUB_TOPIC = "/localization/ekf/odom";
-const std::string CONES_PUB_TOPIC = "/localization/slam/cone_list";
-const std::string CONES_SUB_TOPIC = "/perception/cone_list";
-const std::string LAP_COUNTER_TOPIC = "/localization/slam/lap_count";
-
 /**
  * @brief ROS 2 Node that wraps the GraphSlam C++ library
  * * This node subscribes to the vehicle's EKF odometry and the Lidar/Camera cone detection,
@@ -31,6 +24,17 @@ private:
     double current_v = 0;                  /**< Cached linear velocity from EKF */
     double current_w = 0;                  /**< Cached angular velocity from EKF */
     int current_lap = 1;                   /**< Lap counter */
+
+    // Topics
+    std::string odom_pub_topic_;
+    std::string odom_sub_topic_;
+    std::string cones_pub_topic_;
+    std::string cones_sub_topic_;
+    std::string lap_counter_topic_;
+
+    // Offset for the Lidar sensor actual position
+    // against the center of the vehicle
+    double sensor_offset_x_;
 
     // Publishers
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub;
@@ -87,8 +91,8 @@ private:
         for (const auto &cone : cone_msg->cones) {
             ObservationEdge edge;
             edge.color_id = cone.color;
-            // Apply the +1.6m sensor offset to map lidar frame to vehicle center frame
-            edge.measurement = Vector2d(cone.position.x + 1.6, cone.position.y);
+            // Apply the parameterized sensor offset to map lidar frame to vehicle center frame
+            edge.measurement = Vector2d(cone.position.x + sensor_offset_x_, cone.position.y);
             edge.color_confidence = cone.confidence;
 
             // Assign a temporary unmapped ID. The SLAM engine handles data association
@@ -187,16 +191,55 @@ public:
      * @brief Constructs the GraphSlamNode, initilizing the SLAM engine, publishers and synchronizers
      */
     GraphSlamNode() : Node("slam_node") {
-        slam_map = std::make_unique<GraphSlam>();
+        // 1. Declare Parameters
+        this->declare_parameter<std::string>("topics.pub_odom", "/localization/slam/odom");
+        this->declare_parameter<std::string>("topics.sub_odom", "/localization/ekf/odom");
+        this->declare_parameter<std::string>("topics.pub_cone_list", "/localization/slam/cone_list");
+        this->declare_parameter<std::string>("topics.sub_cone_list", "/perception/cone_list");
+        this->declare_parameter<std::string>("topics.pub_lap_count", "/localization/slam/lap_count");
 
-        // Create publisher
-        odom_pub = this->create_publisher<nav_msgs::msg::Odometry>(ODOM_PUB_TOPIC, 10);
-        map_pub = this->create_publisher<interfaces::msg::ConeArray>(CONES_PUB_TOPIC, 10);
-        lap_pub = this->create_publisher<std_msgs::msg::Int32>(LAP_COUNTER_TOPIC, 10);
+        this->declare_parameter<double>("sensor_offset_x", 1.6);
+
+        this->declare_parameter<double>("tuning.odom_info_x", 1.0);
+        this->declare_parameter<double>("tuning.odom_info_y", 1.0);
+        this->declare_parameter<double>("tuning.odom_info_yaw", 100.0);
+        this->declare_parameter<double>("tuning.min_translation", 0.3);
+        this->declare_parameter<double>("tuning.min_rotation", 0.1);
+        this->declare_parameter<double>("tuning.huber_odom", 0.3);
+        this->declare_parameter<double>("tuning.huber_obs", 1.0);
+        this->declare_parameter<int>("tuning.window_size", 30);
+
+        // 2. Read Parameters
+        odom_pub_topic_ = this->get_parameter("topics.pub_odom").as_string();
+        odom_sub_topic_ = this->get_parameter("topics.sub_odom").as_string();
+        cones_pub_topic_ = this->get_parameter("topics.pub_cone_list").as_string();
+        cones_sub_topic_ = this->get_parameter("topics.sub_cone_list").as_string();
+        lap_counter_topic_ = this->get_parameter("topics.pub_lap_count").as_string();
+
+        sensor_offset_x_ = this->get_parameter("sensor_offset_x").as_double();
+
+        // 3. Populate Config Struct for the Core Engine
+        GraphSlamConfig config;
+        config.odom_info_x = this->get_parameter("tuning.odom_info_x").as_double();
+        config.odom_info_y = this->get_parameter("tuning.odom_info_y").as_double();
+        config.odom_info_yaw = this->get_parameter("tuning.odom_info_yaw").as_double();
+        config.min_translation = this->get_parameter("tuning.min_translation").as_double();
+        config.min_rotation = this->get_parameter("tuning.min_rotation").as_double();
+        config.huber_odom = this->get_parameter("tuning.huber_odom").as_double();
+        config.huber_obs = this->get_parameter("tuning.huber_obs").as_double();
+        config.window_size = this->get_parameter("tuning.window_size").as_int();
+
+        // Instantiate SLAM Engine with the configuration
+        slam_map = std::make_unique<GraphSlam>(config);
+
+        // Create publisher using dynamic topics
+        odom_pub = this->create_publisher<nav_msgs::msg::Odometry>(odom_pub_topic_, 10);
+        map_pub = this->create_publisher<interfaces::msg::ConeArray>(cones_pub_topic_, 10);
+        lap_pub = this->create_publisher<std_msgs::msg::Int32>(lap_counter_topic_, 10);
 
         // Create subscribers
-        odom_sub.subscribe(this, ODOM_SUB_TOPIC);
-        cone_sub.subscribe(this, CONES_SUB_TOPIC);
+        odom_sub.subscribe(this, odom_sub_topic_);
+        cone_sub.subscribe(this, cones_sub_topic_);
 
         // Setup the sync policy (Queue size 50)
         sync = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(SyncPolicy(50), odom_sub, cone_sub);
