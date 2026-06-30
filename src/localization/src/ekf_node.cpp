@@ -82,7 +82,7 @@ public:
 };
 
 EKFNode::EKFNode() : Node("ekf_node") {
-    // 1. Declare Parameters
+    // Declare Parameters
     this->declare_parameter<std::string>("topics.sub_imu", "/carla/hero/imu");
     this->declare_parameter<std::string>("topics.sub_gnss", "/carla/hero/gnss");
     this->declare_parameter<std::string>("topics.pub_odom", "/localization/ekf/odom");
@@ -102,7 +102,7 @@ EKFNode::EKFNode() : Node("ekf_node") {
     this->declare_parameter<double>("measurement_noise.r_x", 1.0);
     this->declare_parameter<double>("measurement_noise.r_y", 1.0);
 
-    // 2. Read Parameters
+    // Read Parameters
     imu_topic_ = this->get_parameter("topics.sub_imu").as_string();
     gnss_topic_ = this->get_parameter("topics.sub_gnss").as_string();
     odom_topic_ = this->get_parameter("topics.pub_odom").as_string();
