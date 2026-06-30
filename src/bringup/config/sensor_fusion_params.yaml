@@ -1,0 +1,9 @@
+sensor_fusion_node:
+  ros__parameters:
+    sync_slop: 0.15
+    topics:
+      sub_bounding_boxes: "/perception/camera/bounding_boxes"
+      sub_lidar: "/perception/lidar"
+      sub_camera_info: "/carla/hero/rgb_front/camera_info"
+      pub_cone_list: "/perception/cone_list"
+      pub_markers: "/perception/markers"

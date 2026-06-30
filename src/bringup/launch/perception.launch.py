@@ -7,6 +7,7 @@ def generate_launch_description():
     config_dir = os.path.join(get_package_share_directory('bringup'), 'config')
     lidar_params = os.path.join(config_dir, 'lidar_params.yaml')
     camera_params = os.path.join(config_dir, 'camera_params.yaml')
+    sensor_fusion_params = os.path.join(config_dir, 'sensor_fusion_params.yaml')
 
     return LaunchDescription([
         # Camera Node
@@ -31,6 +32,6 @@ def generate_launch_description():
             executable='sensor_fusion',
             name='sensor_fusion_node',
             output='screen',
-            parameters=[{'use_sim_time': True}]
+            parameters=[{'use_sim_time': True}, sensor_fusion_params]
         )
     ])

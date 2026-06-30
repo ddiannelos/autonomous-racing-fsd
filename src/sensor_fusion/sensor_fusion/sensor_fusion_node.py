@@ -13,13 +13,6 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
-# Topics names
-BOUNDING_BOXES_TOPIC = '/perception/camera/bounding_boxes'
-LIDAR_TOPIC = '/perception/lidar'
-CONE_LIST = '/perception/cone_list'
-CAMERA_INFO = '/carla/hero/rgb_front/camera_info'
-DEBUG_TOPIC = '/perception/markers'
-
 class SensorFusionNode(Node):
     """
     Fuses 3D Lidar LiDAR centroids with 2D Camera Bounding Boxes
@@ -34,28 +27,47 @@ class SensorFusionNode(Node):
     def __init__(self):
         super().__init__('sensor_fusion_node')
 
+        # Declare parameters
+        self.declare_parameter('topics.sub_bounding_boxes', '/perception/camera/bounding_boxes')
+        self.declare_parameter('topics.sub_lidar', '/perception/lidar')
+        self.declare_parameter('topics.pub_cone_list', '/perception/cone_list')
+        self.declare_parameter('topics.sub_camera_info', '/carla/hero/rgb_front/camera_info')
+        self.declare_parameter('topics.pub_markers', '/perception/markers')
+        self.declare_parameter('sync_slop', 0.15)
+
+        # Read parameters
+        # Topic names
+        sub_boxes_topic = self.get_parameter('topics.sub_bounding_boxes').value
+        sub_lidar_topic = self.get_parameter('topics.sub_lidar').value
+        sub_camera_info = self.get_parameter('topics.sub_camera_info').value
+        pub_cone_list = self.get_parameter('topics.pub_cone_list').value
+        pub_markers = self.get_parameter('topics.pub_markers').value
+
+        # Synchronizer slop
+        sync_slop = self.get_parameter('sync_slop').value
+
         # TF Buffer for coordinate transforms (Lidar Frame -> Camera Frame)
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         # Camera Intrinsics holder
         self.camera_info = None
-        self.create_subscription(CameraInfo, CAMERA_INFO, self.camera_info_cb, 10)
+        self.create_subscription(CameraInfo, sub_camera_info, self.camera_info_cb, 10)
 
         # Time Synchronizer
-        self.lidar_sub = message_filters.Subscriber(self, PointCloud2, LIDAR_TOPIC, 10)
-        self.camera_sub = message_filters.Subscriber(self, Detection2DArray, BOUNDING_BOXES_TOPIC, 10)
+        self.lidar_sub = message_filters.Subscriber(self, PointCloud2, sub_lidar_topic, 10)
+        self.camera_sub = message_filters.Subscriber(self, Detection2DArray, sub_boxes_topic, 10)
 
         self.ts = message_filters.ApproximateTimeSynchronizer(
             [self.lidar_sub, self.camera_sub],
             queue_size=100,
-            slop=0.15
+            slop=sync_slop
         )
         self.ts.registerCallback(self.fusion_callback)
 
         # Publishers
-        self.cone_pub = self.create_publisher(ConeArray, CONE_LIST, 10)
-        self.marker_pub = self.create_publisher(MarkerArray, DEBUG_TOPIC, 10)
+        self.cone_pub = self.create_publisher(ConeArray, pub_cone_list, 10)
+        self.marker_pub = self.create_publisher(MarkerArray, pub_markers, 10)
 
         self.get_logger().info("Sensor Fusion Node Started")
 
