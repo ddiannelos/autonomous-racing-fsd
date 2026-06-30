@@ -191,7 +191,7 @@ public:
      * @brief Constructs the GraphSlamNode, initilizing the SLAM engine, publishers and synchronizers
      */
     GraphSlamNode() : Node("slam_node") {
-        // 1. Declare Parameters
+        // Declare Parameters
         this->declare_parameter<std::string>("topics.slam_odom", "/localization/slam/odom");
         this->declare_parameter<std::string>("topics.ekf_odom", "/localization/ekf/odom");
         this->declare_parameter<std::string>("topics.slam_cones", "/localization/slam/cone_list");
@@ -209,7 +209,7 @@ public:
         this->declare_parameter<double>("tuning.huber_obs", 1.0);
         this->declare_parameter<int>("tuning.window_size", 30);
 
-        // 2. Read Parameters
+        // Read Parameters
         odom_pub_topic_ = this->get_parameter("topics.slam_odom").as_string();
         odom_sub_topic_ = this->get_parameter("topics.ekf_odom").as_string();
         cones_pub_topic_ = this->get_parameter("topics.slam_cones").as_string();
@@ -218,7 +218,7 @@ public:
 
         sensor_offset_x_ = this->get_parameter("sensor_offset_x").as_double();
 
-        // 3. Populate Config Struct for the Core Engine
+        // Populate Config Struct for the Core Engine
         GraphSlamConfig config;
         config.odom_info_x = this->get_parameter("tuning.odom_info_x").as_double();
         config.odom_info_y = this->get_parameter("tuning.odom_info_y").as_double();
