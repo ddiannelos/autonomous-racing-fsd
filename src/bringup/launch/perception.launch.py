@@ -6,6 +6,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     config_dir = os.path.join(get_package_share_directory('bringup'), 'config')
     lidar_params = os.path.join(config_dir, 'lidar_params.yaml')
+    camera_params = os.path.join(config_dir, 'camera_params.yaml')
 
     return LaunchDescription([
         # Camera Node
@@ -14,7 +15,7 @@ def generate_launch_description():
             executable='camera',
             name='camera_node',
             output='screen',
-            parameters=[{'use_sim_time': True}]
+            parameters=[{'use_sim_time': True}, camera_params]
         ),
         # LiDAR Node
         Node(
