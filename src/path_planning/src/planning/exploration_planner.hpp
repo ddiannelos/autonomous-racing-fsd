@@ -11,15 +11,22 @@
 #include "../control/pure_pursuit.hpp"
 #include "../control/pid_controller.hpp"
 
-const double MAX_STEERING_ANGLE = 1.22;  /**< Max Steering */
-const double TARGET_SPEED = 4.5;         /**< Target speed */
-const double LOCAL_RADIUS = 10.0;        /**< Radius of the vehicle's local planning */
-const double MAX_EDGE_DISTANCE = 6.0;    /**< Max distance between two cone nodes */
-const double LOOKAHEAD_DISTANCE = 4.0;   /**< Lookahead distance for the pure pursuit algorithm */
+/**
+ * @brief Configuration struct for Exploration Lap tuning parameters
+ */
+struct ExplorationConfig {
+    double max_steering_angle = 1.22;
+    double target_speed = 4.5;
+    double local_radius = 10.0;
+    double max_edge_distance = 6.0;
+    double lookahead_distance = 4.0;
 
-const double KP = 1.5;                   /**< Proportional Gain for the PID */
-const double KI = 0.05;                  /**< Integral Gain for the PID */
-const double KD = 0.1;                   /**< Derivative Gain for the PID */
+    double wheelbase = 1.5;
+
+    double kp = 1.5;
+    double ki = 0.05;
+    double kd = 0.1;
+};
 
 /**
  * @brief Handles the exploration lap (Lap 1) of the unknown track.
@@ -29,6 +36,7 @@ const double KD = 0.1;                   /**< Derivative Gain for the PID */
  */
 class ExplorationPlanner {
 private:
+    ExplorationConfig config_;
     DelaunayTriangulator mesher;
     PurePursuit latitude_controller;
     PIDController longitude_controller;
@@ -39,7 +47,10 @@ private:
     /** @brief Connects the Delaunay midpoints into an ordered sequence using Nearest Neighbor */
     std::vector<Point> order_centerline(std::vector<Point> unordered_points, const VehiclePose &current_pose);
 public:
-    ExplorationPlanner() : latitude_controller(1.5, LOOKAHEAD_DISTANCE), longitude_controller(KP, KI, KD) {}
+    ExplorationPlanner(const ExplorationConfig& config = ExplorationConfig())
+        : config_(config),
+          latitude_controller(config.wheelbase, config.lookahead_distance),
+          longitude_controller(config.kp, config.ki, config.kd) {}
 
     /** @brief Executes the Lap 1 pipeline and returns a control command */
     ControlCommand compute_command(const VehiclePose &current_pose, double current_speed,
@@ -48,7 +59,7 @@ public:
     /** @brief Extracts the finalized closed-loop track boundaries */
     std::vector<Edge> generate_global_gates(const std::vector<Point> &all_cones) {
         mesher.triangulate(all_cones);
-        return mesher.get_track_gates(MAX_EDGE_DISTANCE);
+        return mesher.get_track_gates(config_.max_edge_distance);
     }
 };
 
@@ -62,7 +73,7 @@ std::vector<Point> ExplorationPlanner::extract_local_map(const std::vector<Point
         double dist = std::hypot(dx, dy);
 
         // Check if cone is within the physical search radius
-        if (dist <= LOCAL_RADIUS) {
+        if (dist <= config_.local_radius) {
             double angle_to_cone = std::atan2(dy, dx);
             double relative_angle = angle_to_cone - current_pose.yaw;
 
@@ -104,14 +115,14 @@ std::vector<Point> ExplorationPlanner::order_centerline(std::vector<Point> unord
 ControlCommand ExplorationPlanner::compute_command(const VehiclePose &current_pose, double current_speed,
                                                    double dt, const std::vector<Point> &global_cones) {
 
-    ControlCommand cmd = {0.0, 0.0, 0.0, {0.0, 0.0, ConeColor::UNKNOWN}, LOOKAHEAD_DISTANCE, {}};
+    ControlCommand cmd = {0.0, 0.0, 0.0, {0.0, 0.0, ConeColor::UNKNOWN}, config_.lookahead_distance, {}};
 
     if (global_cones.empty()) return cmd;
 
     // Generate the local boundaries and centerline
     std::vector<Point> local_cones = extract_local_map(global_cones, current_pose);
     mesher.triangulate(local_cones);
-    std::vector<Point> raw_centerline = mesher.get_centerline(MAX_EDGE_DISTANCE);
+    std::vector<Point> raw_centerline = mesher.get_centerline(config_.max_edge_distance);
     std::vector<Point> centerline = order_centerline(raw_centerline, current_pose);
 
     // Anchor the centerline to the car's current position for a smooth B-spline
@@ -122,16 +133,16 @@ ControlCommand ExplorationPlanner::compute_command(const VehiclePose &current_po
     double steering_angle_rad = latitude_controller.calculate_steering(current_pose, smooth_path);
 
     // Normalize steering to [-1.0, 1.0]
-    cmd.steering = std::max(-1.0, std::min(1.0, -steering_angle_rad/MAX_STEERING_ANGLE));
+    cmd.steering = std::max(-1.0, std::min(1.0, -steering_angle_rad/config_.max_steering_angle));
 
     // Dynamic speed calculation (slow down on shart turns)
-    double turn_severity = std::abs(steering_angle_rad) / MAX_STEERING_ANGLE;
-    double dynamic_target_speed = std::max(1.5, TARGET_SPEED * (1.0 - (0.5 * turn_severity)));
+    double turn_severity = std::abs(steering_angle_rad) / config_.max_steering_angle;
+    double dynamic_target_speed = std::max(1.5, config_.target_speed * (1.0 - (0.5 * turn_severity)));
 
     // PID Throttle/Brake Control
     if (dt > 0.0) {
         double pid_update = longitude_controller.calculate(dynamic_target_speed, current_speed, dt);
-        double pedal = std::max(-1.0, std::min(1.0, pid_update/TARGET_SPEED));
+        double pedal = std::max(-1.0, std::min(1.0, pid_update/config_.target_speed));
 
         // Split the PID output into distinct throttle/brake/neutral commands
         if (pedal > 0.05) {

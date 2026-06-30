@@ -57,65 +57,6 @@ int VelocityProfiler::get_spaced_index(const std::vector<Vector2d> &path, int st
     return curr;
 }
 
-// std::vector<double> VelocityProfiler::generate_profile(const std::vector<Vector2d> &path, double mu, double max_speed, double max_decel) {
-//     int N = path.size();
-//     if (N < 3) return {};
-
-//     speed_profile.assign(N, max_speed);
-//     double gravity = 9.81;
-//     double max_accel = 8.0;
-
-//     // Calculate max speed through corners
-//     for (int i = 0; i < N; i++) {
-//         int prev = get_spaced_index(path, i, 1.5, -1);
-//         int next = get_spaced_index(path, i, 1.5, 1);
-
-//         double kappa = calculate_curvature(path[prev], path[i], path[next]);
-//         kappa = std::max(kappa, 1e-6); // Prevent divede by zero
-
-//         // Limit speed based on lateral centripetal friction v = sqrt(mu * g / kappa)
-//         double v_corner = std::sqrt((mu * gravity) / kappa);
-
-//         speed_profile[i] = std::min(max_speed, v_corner);
-//     }
-
-//     // Moving Average Filter
-//     std::vector<double> smoothed_profile(N);
-//     int window = 4; // Average across 9 points total (4 ahead, 4 behind)
-//     for (int i = 0; i < N; i++) {
-//         double sum = 0.0;
-//         for (int j = -window; j <= window; j++) {
-//             int idx = (i + j + N) % N;
-//             sum += speed_profile[idx];
-//         }
-//         smoothed_profile[i] = sum / (2 * window + 1);
-//     }
-//     speed_profile = smoothed_profile;
-
-//     // Ensure deceleration/acceleration is physically possible
-//     for (int loop = 0; loop < 2; loop++) {
-//         // Ensure the brakings is early enough for corners
-//         for (int i = N - 1; i >= 0; i--) {
-//             int next = (i + 1) % N;
-//             double distance = (path[i] - path[next]).norm();
-
-//             // Kinematic equation: v_f^2 = v_i^2 + 2ad
-//             double safe_braking_speed = std::sqrt(std::pow(speed_profile[next], 2) + (2.0 * max_decel * distance));
-//             speed_profile[i] = std::min(speed_profile[i], safe_braking_speed);
-//         }
-
-//         // Ensure acceleration is not faster than physically possible
-//         for (int i = 0; i < N; i++) {
-//             int prev = (i - 1 + N) % N;
-//             double distance = (path[i] - path[prev]).norm();
-
-//             double safe_accel_speed = std::sqrt(std::pow(speed_profile[prev], 2) + (2.0 * max_accel * distance));
-//             speed_profile[i] = std::min(speed_profile[i], safe_accel_speed);
-//         }
-//     }
-
-//     return speed_profile;
-// }
 std::vector<double> VelocityProfiler::generate_profile(const std::vector<Vector2d> &path, double mu, double max_speed, double max_decel) {
     int N = path.size();
     if (N < 3) return {};

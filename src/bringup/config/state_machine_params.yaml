@@ -1,0 +1,38 @@
+state_machine_node:
+  ros__parameters:
+    race:
+      max_laps: 4
+    csv:
+      cones_path: "/home/sir/ros2_ws/scripts/csv/cones.csv"
+      telemetry_path: "/home/sir/ros2_ws/scripts/csv/telemetry.csv"
+    kinematics:
+      wheelbase: 1.5
+    exploration:
+      max_steering_angle: 1.22
+      target_speed: 4.5
+      local_radius: 10.0
+      max_edge_distance: 6.0
+      lookahead_distance: 4.0
+      pid:
+        kp: 1.5
+        ki: 0.05
+        kd: 0.1
+    optimization:
+      car_width: 1.6
+      safety_margin: 0.5
+      friction_mu: 0.6
+      max_speed: 14.0
+      max_accel: 8.0
+      max_decel: 12.0
+      max_steer: 1.22
+      mpc:
+        N: 10
+        dt: 0.1
+        q_x: 250.0
+        q_y: 250.0
+        q_yaw: 100.0
+        q_v: 50.0
+        r_steer: 100.0
+        r_accel: 10.0
+        r_steer_rate: 20000.0
+        r_accel_rate: 25.0

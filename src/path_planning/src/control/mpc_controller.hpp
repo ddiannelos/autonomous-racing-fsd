@@ -27,21 +27,21 @@ struct MPCResult {
 
 class MPCController {
 private:
-    int N = 10;                             /**< Prediction horizon (Looking 1.0 seconds ahead) */
-    double dt = 0.1;                        /**< Timestep */
-    double L = 1.6;                        /**< Wheelbase of the vehicle */
+    int N;                                  /**< Prediction horizon */
+    double dt;                              /**< Timestep */
+    double L;                               /**< Wheelbase of the vehicle */
 
     // Physical limits of the car
-    double max_steer = 1.22;
-    double max_accel = 8.0;
-    double max_decel = -12.0;
+    double max_steer;
+    double max_accel;
+    double max_decel;
 
     Eigen::DiagonalMatrix<double, 4> Q;     /**< Penalizes deviation from the target state [x, y, yaw, velocity] */
     Eigen::DiagonalMatrix<double, 2> R;     /**< Penalizes high actuator values [steer, accel]*/
 
     // Penalties for changing the inputs too fast
-    double R_steer_rate = 20000.0;
-    double R_accel_rate = 25.0;
+    double R_steer_rate;
+    double R_accel_rate;
 
     int last_nearest_idx = -1;
 
@@ -59,10 +59,23 @@ private:
     /** @brief Locates the closest point on the reference path in front of the vehicle */
     int find_nearest_index(const MPCState &current_state, const std::vector<Eigen::Vector2d> &path);
 public:
-    MPCController() {
-        Q.diagonal() << 250.0, 250.0, 100.0, 50.0;
-        // Q.diagonal() << 100, 100, 100, 50.0;
-        R.diagonal() << 100.0, 10.0;
+    MPCController() = default;
+
+    /** @brief Dynamically configures the MPC matrices and vehicle limits */
+    void configure(int n, double delta_t, double wheelbase, double m_steer, double m_accel, double m_decel,
+                   double q_x, double q_y, double q_yaw, double q_v, double r_st, double r_ac,
+                   double r_st_rate, double r_ac_rate) {
+        N = n;
+        dt = delta_t;
+        L = wheelbase;
+        max_steer = m_steer;
+        max_accel = m_accel;
+        max_decel = -m_decel; // Invert to represent negative acceleration
+
+        Q.diagonal() << q_x, q_y, q_yaw, q_v;
+        R.diagonal() << r_st, r_ac;
+        R_steer_rate = r_st_rate;
+        R_accel_rate = r_ac_rate;
     }
 
     /** @brief Allocates memory and factorizes the QP matrices */
@@ -122,8 +135,8 @@ int MPCController::find_nearest_index(const MPCState &current_state, const std::
 }
 
 bool MPCController::init(const MPCState& initial_state, const std::vector<Eigen::Vector2d>& opt_path, const std::vector<double>& speed_profile) {
-    int nx = 4; // [x, y, yaw, v]
-    int nu = 2; // [steer, accel]
+    int nx = 4;
+    int nu = 2;
     num_variables = nx * (N + 1) + nu * N;
     num_constraints = nx * (N + 1) + nu * N;
 
@@ -155,9 +168,7 @@ bool MPCController::init(const MPCState& initial_state, const std::vector<Eigen:
     for (int j = 0; j < nx; ++j) P_triplets.push_back({N * nx + j, N * nx + j, Q.diagonal()[j]});
     P.setFromTriplets(P_triplets.begin(), P_triplets.end());
 
-    // To initialize the solver, A_cons and q must be populated at least once.
-    // solve() internally to do the math, but we catch the setup before it runs the actual solver.
-    is_initialized = true; // Temporarily trick solve() so it populates the matrices
+    is_initialized = true;
     solve(initial_state, opt_path, speed_profile);
     is_initialized = false;
 

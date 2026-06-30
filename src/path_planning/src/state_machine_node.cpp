@@ -11,17 +11,6 @@
 #include "planning/exploration_planner.hpp"
 #include "planning/optimization_planner.hpp"
 
-// ROS2 Topics
-const std::string ODOM_TOPIC = "/localization/slam/odom";
-const std::string CONE_TOPIC = "/localization/slam/cone_list";
-const std::string LAP_TOPIC = "/localization/slam/lap_count";
-const std::string CONTROL_TOPIC = "/carla/hero/vehicle_control_cmd";
-const std::string POINT_VIZ_TOPIC = "/exploration/viz/point";
-const std::string CIRCLE_VIZ_TOPIC = "/exploration/viz/circle";
-const std::string MPC_VIZ_TOPIC = "/optimization/viz/mpc_trajectory";
-
-const int MAX_LAPS = 4;
-
 /** @brief The states of the vehicle */
 enum class RaceState {
     EXPLORATION,   /**< Lap 1: Driving safely: discovering the track */
@@ -33,6 +22,20 @@ class StateMachineNode : public rclcpp::Node {
 private:
     RaceState current_state = RaceState::EXPLORATION;
     int lap_count = 1;
+    int max_laps_;
+
+    // Topic names
+    std::string odom_topic_;
+    std::string cone_topic_;
+    std::string lap_topic_;
+    std::string control_topic_;
+    std::string point_viz_topic_;
+    std::string circle_viz_topic_;
+    std::string mpc_viz_topic_;
+
+    // Telemetry log paths
+    std::string csv_cones_path_;
+    std::string csv_telemetry_path_;
 
     // Planners
     ExplorationPlanner explorer;
@@ -119,8 +122,7 @@ void StateMachineNode::lap_callback(const std_msgs::msg::Int32::SharedPtr msg) {
         optimizer.initialize_track(full_track_gates, current_pose);
 
         // Save the final map to a csv file for visualization
-        std::string filename = "/home/sir/ros2_ws/scripts/csv/cones.csv";
-        std::ofstream csv_file(filename);
+        std::ofstream csv_file(csv_cones_path_);
 
         if (csv_file.is_open()) {
             for (const auto &c : global_cones_cache) {
@@ -134,9 +136,9 @@ void StateMachineNode::lap_callback(const std_msgs::msg::Int32::SharedPtr msg) {
                 csv_file << c.x << "," << c.y << "," << color << "\n";
             }
             csv_file.close();
-        } else std::cerr << "ERROR: Failed to open file";
+        } else std::cerr << "ERROR: Failed to open file: " << csv_cones_path_ << "\n";
     // Transition: Optimization -> Finished
-    } else if (lap_count >= MAX_LAPS && current_state != RaceState::FINISHED){
+    } else if (lap_count >= max_laps_ && current_state != RaceState::FINISHED){
         current_state = RaceState::FINISHED;
         RCLCPP_INFO(this->get_logger(), "%d Laps Complete. Shutting down driving.", lap_count);
     }
@@ -290,42 +292,120 @@ void StateMachineNode::publish_mpc_trajectory(const std::vector<Point> &trajecto
 }
 
 StateMachineNode::StateMachineNode() : Node("state_machine_node") {
+    // Declare Exploration Parameters
+    this->declare_parameter<std::string>("topics.slam_odom", "/localization/slam/odom");
+    this->declare_parameter<std::string>("topics.cone_list", "/localization/slam/cone_list");
+    this->declare_parameter<std::string>("topics.lap_count", "/localization/slam/lap_count");
+    this->declare_parameter<std::string>("topics.control_cmd", "/carla/hero/vehicle_control_cmd");
+    this->declare_parameter<std::string>("topics.viz_point", "/exploration/viz/point");
+    this->declare_parameter<std::string>("topics.viz_circle", "/exploration/viz/circle");
+    this->declare_parameter<std::string>("topics.viz_mpc", "/optimization/viz/mpc_trajectory");
+
+    this->declare_parameter<int>("race.max_laps", 4);
+    this->declare_parameter<std::string>("csv.cones_path", "/home/sir/ros2_ws/scripts/csv/cones.csv");
+    this->declare_parameter<std::string>("csv.telemetry_path", "/home/sir/ros2_ws/scripts/csv/telemetry.csv");
+
+    this->declare_parameter<double>("kinematics.wheelbase", 1.5);
+
+    this->declare_parameter<double>("exploration.max_steering_angle", 1.22);
+    this->declare_parameter<double>("exploration.target_speed", 4.5);
+    this->declare_parameter<double>("exploration.local_radius", 10.0);
+    this->declare_parameter<double>("exploration.max_edge_distance", 6.0);
+    this->declare_parameter<double>("exploration.lookahead_distance", 4.0);
+    this->declare_parameter<double>("exploration.pid.kp", 1.5);
+    this->declare_parameter<double>("exploration.pid.ki", 0.05);
+    this->declare_parameter<double>("exploration.pid.kd", 0.1);
+
+    // 2. Declare Optimization Parameters
+    this->declare_parameter<double>("optimization.car_width", 1.6);
+    this->declare_parameter<double>("optimization.safety_margin", 0.5);
+    this->declare_parameter<double>("optimization.friction_mu", 0.6);
+    this->declare_parameter<double>("optimization.max_speed", 14.0);
+    this->declare_parameter<double>("optimization.max_accel", 8.0);
+    this->declare_parameter<double>("optimization.max_decel", 12.0);
+    this->declare_parameter<double>("optimization.max_steer", 1.22);
+
+    this->declare_parameter<int>("optimization.mpc.N", 10);
+    this->declare_parameter<double>("optimization.mpc.dt", 0.1);
+    this->declare_parameter<double>("optimization.mpc.q_x", 250.0);
+    this->declare_parameter<double>("optimization.mpc.q_y", 250.0);
+    this->declare_parameter<double>("optimization.mpc.q_yaw", 100.0);
+    this->declare_parameter<double>("optimization.mpc.q_v", 50.0);
+    this->declare_parameter<double>("optimization.mpc.r_steer", 100.0);
+    this->declare_parameter<double>("optimization.mpc.r_accel", 10.0);
+    this->declare_parameter<double>("optimization.mpc.r_steer_rate", 20000.0);
+    this->declare_parameter<double>("optimization.mpc.r_accel_rate", 25.0);
+
+    // Read General Parameters
+    odom_topic_ = this->get_parameter("topics.slam_odom").as_string();
+    cone_topic_ = this->get_parameter("topics.cone_list").as_string();
+    lap_topic_ = this->get_parameter("topics.lap_count").as_string();
+    control_topic_ = this->get_parameter("topics.control_cmd").as_string();
+    point_viz_topic_ = this->get_parameter("topics.viz_point").as_string();
+    circle_viz_topic_ = this->get_parameter("topics.viz_circle").as_string();
+    mpc_viz_topic_ = this->get_parameter("topics.viz_mpc").as_string();
+    max_laps_ = this->get_parameter("race.max_laps").as_int();
+    csv_cones_path_ = this->get_parameter("csv.cones_path").as_string();
+    csv_telemetry_path_ = this->get_parameter("csv.telemetry_path").as_string();
+
+    // Initialize Exploration Planner
+    ExplorationConfig exp_cfg;
+    exp_cfg.max_steering_angle = this->get_parameter("exploration.max_steering_angle").as_double();
+    exp_cfg.target_speed = this->get_parameter("exploration.target_speed").as_double();
+    exp_cfg.local_radius = this->get_parameter("exploration.local_radius").as_double();
+    exp_cfg.max_edge_distance = this->get_parameter("exploration.max_edge_distance").as_double();
+    exp_cfg.lookahead_distance = this->get_parameter("exploration.lookahead_distance").as_double();
+    exp_cfg.wheelbase = this->get_parameter("kinematics.wheelbase").as_double();
+    exp_cfg.kp = this->get_parameter("exploration.pid.kp").as_double();
+    exp_cfg.ki = this->get_parameter("exploration.pid.ki").as_double();
+    exp_cfg.kd = this->get_parameter("exploration.pid.kd").as_double();
+    explorer = ExplorationPlanner(exp_cfg);
+
+    // Initialize Optimization Planner
+    OptimizationConfig opt_cfg;
+    opt_cfg.wheelbase = this->get_parameter("kinematics.wheelbase").as_double();
+    opt_cfg.car_width = this->get_parameter("optimization.car_width").as_double();
+    opt_cfg.safety_margin = this->get_parameter("optimization.safety_margin").as_double();
+    opt_cfg.friction_mu = this->get_parameter("optimization.friction_mu").as_double();
+    opt_cfg.max_speed = this->get_parameter("optimization.max_speed").as_double();
+    opt_cfg.max_accel = this->get_parameter("optimization.max_accel").as_double();
+    opt_cfg.max_decel = this->get_parameter("optimization.max_decel").as_double();
+    opt_cfg.max_steer = this->get_parameter("optimization.max_steer").as_double();
+
+    opt_cfg.mpc_N = this->get_parameter("optimization.mpc.N").as_int();
+    opt_cfg.mpc_dt = this->get_parameter("optimization.mpc.dt").as_double();
+    opt_cfg.q_x = this->get_parameter("optimization.mpc.q_x").as_double();
+    opt_cfg.q_y = this->get_parameter("optimization.mpc.q_y").as_double();
+    opt_cfg.q_yaw = this->get_parameter("optimization.mpc.q_yaw").as_double();
+    opt_cfg.q_v = this->get_parameter("optimization.mpc.q_v").as_double();
+    opt_cfg.r_steer = this->get_parameter("optimization.mpc.r_steer").as_double();
+    opt_cfg.r_accel = this->get_parameter("optimization.mpc.r_accel").as_double();
+    opt_cfg.r_steer_rate = this->get_parameter("optimization.mpc.r_steer_rate").as_double();
+    opt_cfg.r_accel_rate = this->get_parameter("optimization.mpc.r_accel_rate").as_double();
+
+    optimizer = OptimizationPlanner(opt_cfg);
+
     prev_time = this->now();
 
     // Initialize subscribers
     odom_sub = this->create_subscription<nav_msgs::msg::Odometry>(
-        ODOM_TOPIC, 10,
-        std::bind(&StateMachineNode::odom_callback, this, std::placeholders::_1)
-    );
+        odom_topic_, 10, std::bind(&StateMachineNode::odom_callback, this, std::placeholders::_1));
     cone_sub = this->create_subscription<interfaces::msg::ConeArray>(
-        CONE_TOPIC, 10,
-        std::bind(&StateMachineNode::cone_callback, this, std::placeholders::_1)
-    );
+        cone_topic_, 10, std::bind(&StateMachineNode::cone_callback, this, std::placeholders::_1));
     lap_sub = this->create_subscription<std_msgs::msg::Int32>(
-        LAP_TOPIC, 10,
-        std::bind(&StateMachineNode::lap_callback, this, std::placeholders::_1)
-    );
+        lap_topic_, 10, std::bind(&StateMachineNode::lap_callback, this, std::placeholders::_1));
 
     // Initialize publishers
-    control_pub = this->create_publisher<carla_msgs::msg::CarlaEgoVehicleControl>(
-        CONTROL_TOPIC, 10
-    );
-    marker_pub = this->create_publisher<visualization_msgs::msg::Marker>(
-        POINT_VIZ_TOPIC, 10
-    );
-    circle_pub = this->create_publisher<visualization_msgs::msg::Marker>(
-        CIRCLE_VIZ_TOPIC, 10
-    );
-    mpc_pub = this->create_publisher<visualization_msgs::msg::Marker>(
-        MPC_VIZ_TOPIC, 10
-    );
+    control_pub = this->create_publisher<carla_msgs::msg::CarlaEgoVehicleControl>(control_topic_, 10);
+    marker_pub = this->create_publisher<visualization_msgs::msg::Marker>(point_viz_topic_, 10);
+    circle_pub = this->create_publisher<visualization_msgs::msg::Marker>(circle_viz_topic_, 10);
+    mpc_pub = this->create_publisher<visualization_msgs::msg::Marker>(mpc_viz_topic_, 10);
 
-    telemetry_file.open("/home/sir/ros2_ws/scripts/csv/telemetry.csv");
+    telemetry_file.open(csv_telemetry_path_);
     if (telemetry_file.is_open()) telemetry_file << "time,state,x,y,speed,steering,throttle,brake\n";
 
     RCLCPP_INFO(this->get_logger(), "State Machine Initialized");
 }
-
 
 /**
  * @brief Standard ROS 2 entry point
