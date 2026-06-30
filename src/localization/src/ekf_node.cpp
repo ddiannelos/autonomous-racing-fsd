@@ -6,15 +6,6 @@
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <Eigen/Dense>
 
-const std::string IMU_TOPIC = "/carla/hero/imu";
-const std::string GNSS_TOPIC = "/carla/hero/gnss";
-const std::string ODOM_TOPIC = "/localization/ekf/odom";
-
-const float INITIAL_X = 194.5;
-const float INITIAL_Y = -296.3;
-const float INITIAL_VEL = 0.0;
-const float INITIAL_YAW = M_PI;
-
 /**
  * @brief Extended Kalman Filter (EKF) Node for Vehicle Localization
  * * Fuses high-frequency IMU data (linear acceleration and yaw rate) for the
@@ -31,9 +22,17 @@ private:
     bool origin_set = false;
 
     int origin_samples = 0;
-    const int MAX_ORIGIN_SAMPLES = 20;
+    int max_origin_samples_;
     double sum_lat = 0.0;
     double sum_lon = 0.0;
+
+    // Topic Names
+    std::string imu_topic_;
+    std::string gnss_topic_;
+    std::string odom_topic_;
+
+    // Initial vehicle position
+    double initial_x_, initial_y_, initial_vel_, initial_yaw_;
 
     Eigen::Vector4d x;    /**< State Vector [pos_x, pos_y, velocity, yaw]^T */
     Eigen::Matrix4d P;    /**< State Covariance: Trakces the uncertainty of the state  */
@@ -83,12 +82,44 @@ public:
 };
 
 EKFNode::EKFNode() : Node("ekf_node") {
+    // 1. Declare Parameters
+    this->declare_parameter<std::string>("topics.sub_imu", "/carla/hero/imu");
+    this->declare_parameter<std::string>("topics.sub_gnss", "/carla/hero/gnss");
+    this->declare_parameter<std::string>("topics.pub_odom", "/localization/ekf/odom");
+
+    this->declare_parameter<double>("initial_state.x", 194.5);
+    this->declare_parameter<double>("initial_state.y", -296.3);
+    this->declare_parameter<double>("initial_state.velocity", 0.0);
+    this->declare_parameter<double>("initial_state.yaw", M_PI);
+
+    this->declare_parameter<int>("gnss.max_origin_samples", 20);
+
+    this->declare_parameter<double>("process_noise.q_x", 0.1);
+    this->declare_parameter<double>("process_noise.q_y", 0.1);
+    this->declare_parameter<double>("process_noise.q_v", 0.1);
+    this->declare_parameter<double>("process_noise.q_yaw", 0.05);
+
+    this->declare_parameter<double>("measurement_noise.r_x", 1.0);
+    this->declare_parameter<double>("measurement_noise.r_y", 1.0);
+
+    // 2. Read Parameters
+    imu_topic_ = this->get_parameter("topics.sub_imu").as_string();
+    gnss_topic_ = this->get_parameter("topics.sub_gnss").as_string();
+    odom_topic_ = this->get_parameter("topics.pub_odom").as_string();
+
+    initial_x_ = this->get_parameter("initial_state.x").as_double();
+    initial_y_ = this->get_parameter("initial_state.y").as_double();
+    initial_vel_ = this->get_parameter("initial_state.velocity").as_double();
+    initial_yaw_ = this->get_parameter("initial_state.yaw").as_double();
+
+    max_origin_samples_ = this->get_parameter("gnss.max_origin_samples").as_int();
+
     // Initialize State Vector
     x.setZero();
-    x(0) = INITIAL_X;
-    x(1) = INITIAL_Y;
-    x(2) = INITIAL_VEL;
-    x(3) = INITIAL_YAW;
+    x(0) = initial_x_;
+    x(1) = initial_y_;
+    x(2) = initial_vel_;
+    x(3) = initial_yaw_;
 
     // Initialize state covariance (P)
     P = Eigen::Matrix4d::Identity();
@@ -97,25 +128,25 @@ EKFNode::EKFNode() : Node("ekf_node") {
 
     // Initialize Process Noise (Q) - System physics uncertainty
     Q = Eigen::Matrix4d::Identity();
-    Q(0, 0) = 0.1; // 0.005;     // 0.01 0.05
-    Q(1, 1) = 0.1; // 0.005;     // 0.01 0.05
-    Q(2, 2) = 0.1; // 0.001;    // 0.005 0.1
-    Q(3, 3) = 0.05; // 0.0005;    // 0.001 0.01
+    Q(0, 0) = this->get_parameter("process_noise.q_x").as_double();
+    Q(1, 1) = this->get_parameter("process_noise.q_y").as_double();
+    Q(2, 2) = this->get_parameter("process_noise.q_v").as_double();
+    Q(3, 3) = this->get_parameter("process_noise.q_yaw").as_double();
 
     // Initialize Measurement Noise (R) - GNSS sensor uncertainty
     R = Eigen::Matrix2d::Identity();
-    R(0, 0) = 1.0; //5.0;
-    R(1, 1) = 1.0; //5.0;
+    R(0, 0) = this->get_parameter("measurement_noise.r_x").as_double();
+    R(1, 1) = this->get_parameter("measurement_noise.r_y").as_double();
 
     // ROS Interfaces
     sub_imu = this->create_subscription<sensor_msgs::msg::Imu>(
-        IMU_TOPIC, 10, std::bind(&EKFNode::imu_callback, this, std::placeholders::_1)
+        imu_topic_, 10, std::bind(&EKFNode::imu_callback, this, std::placeholders::_1)
     );
     sub_gnss = this->create_subscription<sensor_msgs::msg::NavSatFix>(
-        GNSS_TOPIC, 10, std::bind(&EKFNode::gnss_callback, this, std::placeholders::_1)
+        gnss_topic_, 10, std::bind(&EKFNode::gnss_callback, this, std::placeholders::_1)
     );
 
-    pub_odom = this->create_publisher<nav_msgs::msg::Odometry>(ODOM_TOPIC, 10);
+    pub_odom = this->create_publisher<nav_msgs::msg::Odometry>(odom_topic_, 10);
 
     RCLCPP_INFO(this->get_logger(), "Extended Kalman Filter Node Started");
 }
@@ -255,9 +286,9 @@ void EKFNode::gnss_callback(const sensor_msgs::msg::NavSatFix::SharedPtr msg) {
         sum_lon += msg->longitude;
         origin_samples++;
 
-        if (origin_samples >= MAX_ORIGIN_SAMPLES) {
-            origin_lat = sum_lat / MAX_ORIGIN_SAMPLES;
-            origin_lon = sum_lon / MAX_ORIGIN_SAMPLES;
+        if (origin_samples >= max_origin_samples_) {
+            origin_lat = sum_lat / max_origin_samples_;
+            origin_lon = sum_lon / max_origin_samples_;
             origin_set = true;
         }
 
@@ -269,8 +300,8 @@ void EKFNode::gnss_callback(const sensor_msgs::msg::NavSatFix::SharedPtr msg) {
     lat_lon_to_xy(msg->latitude, msg->longitude, meas_x, meas_y);
 
     // Apply starting position bias
-    meas_x += INITIAL_X;
-    meas_y += INITIAL_Y;
+    meas_x += initial_x_;
+    meas_y += initial_y_;
 
     update(meas_x, meas_y);
 }
