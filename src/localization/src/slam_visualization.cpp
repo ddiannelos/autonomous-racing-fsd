@@ -8,11 +8,6 @@
 #include <interfaces/msg/cone_array.hpp>
 #include <interfaces/msg/cone.hpp>
 
-const std::string ODOM_SUB_TOPIC = "/localization/slam/odom";
-const std::string CONES_SUB_TOPIC = "/localization/slam/cone_list";
-const std::string PATH_PUB_TOPIC = "/localization/viz/slam_path";
-const std::string CLOUD_PUB_TOPIC = "/localization/viz/cone_cloud";
-
 /**
  * @brief Utility node to visualize custom SLAM data in RViz
  * * Subscribes to the vehicle's optimized odometry and custom cone arrays and
@@ -22,6 +17,14 @@ const std::string CLOUD_PUB_TOPIC = "/localization/viz/cone_cloud";
 class SlamVisualizationNode : public rclcpp::Node {
 private:
     nav_msgs::msg::Path slam_path; /**< Accumulates historical poses to draw the trajectory line */
+    int max_path_size_;
+
+    // Topic Names
+    std::string odom_sub_topic_;
+    std::string cones_sub_topic_;
+    std::string path_pub_topic_;
+    std::string cloud_pub_topic_;
+
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub;
     rclcpp::Subscription<interfaces::msg::ConeArray>::SharedPtr cone_sub;
@@ -46,7 +49,9 @@ private:
 
         slam_path.poses.push_back(pose_stamped);
 
-        if (slam_path.poses.size() > 1000) slam_path.poses.erase(slam_path.poses.begin());
+        if (slam_path.poses.size() > static_cast<size_t>(max_path_size_)) {
+            slam_path.poses.erase(slam_path.poses.begin());
+        }
 
         path_pub->publish(slam_path);
     }
@@ -103,16 +108,31 @@ public:
      * @brief Constructs the Vizualization node, initilizing publishers and subscribers
      */
     SlamVisualizationNode() : Node("slam_visualization_node") {
-        path_pub = this->create_publisher<nav_msgs::msg::Path>(PATH_PUB_TOPIC, 10);
-        cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(CLOUD_PUB_TOPIC, 10);
+        // 1. Declare Parameters
+        this->declare_parameter<std::string>("topics.sub_odom", "/localization/slam/odom");
+        this->declare_parameter<std::string>("topics.sub_cone_list", "/localization/slam/cone_list");
+        this->declare_parameter<std::string>("topics.pub_slam_path", "/localization/viz/slam_path");
+        this->declare_parameter<std::string>("topics.pub_cone_cloud", "/localization/viz/cone_cloud");
+        this->declare_parameter<int>("max_path_size", 1000);
+
+        // 2. Read Parameters
+        odom_sub_topic_ = this->get_parameter("topics.sub_odom").as_string();
+        cones_sub_topic_ = this->get_parameter("topics.sub_cone_list").as_string();
+        path_pub_topic_ = this->get_parameter("topics.pub_slam_path").as_string();
+        cloud_pub_topic_ = this->get_parameter("topics.pub_cone_cloud").as_string();
+        max_path_size_ = this->get_parameter("max_path_size").as_int();
+
+        // 3. Initialize Publishers and Subscribers using dynamic topics
+        path_pub = this->create_publisher<nav_msgs::msg::Path>(path_pub_topic_, 10);
+        cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(cloud_pub_topic_, 10);
 
         odom_sub = this->create_subscription<nav_msgs::msg::Odometry>(
-            ODOM_SUB_TOPIC, 10,
+            odom_sub_topic_, 10,
             std::bind(&SlamVisualizationNode::odom_callback, this, std::placeholders::_1)
         );
 
         cone_sub = this->create_subscription<interfaces::msg::ConeArray>(
-            CONES_SUB_TOPIC, 10,
+            cones_sub_topic_, 10,
             std::bind(&SlamVisualizationNode::cone_callback, this, std::placeholders::_1)
         );
 
