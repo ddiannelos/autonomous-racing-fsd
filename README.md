@@ -225,4 +225,13 @@ To safely stop the simulation without freezing the CARLA server, follow this exa
 ## License
 This project is licensed under the Apache 2.0 License. See the `LICENSE` file for details.
 
+---
+
+## Contact
+**Dimitrios Eleftherios Diannelos**   
+*Electrical and Computer Engineering, University of Thessaly*
+
+Email: [jdian18@gmail.com](mailto:jdian18@gmail.com) <br>
+Linkedin: [Dimitrios Eleftherios Diannelos](www.linkedin.com/in/dimitrios-eleftherios-diannelos-596216290) <br>
+Github: [@ddiannelos](https://github.com/ddiannelos) <br>
 
