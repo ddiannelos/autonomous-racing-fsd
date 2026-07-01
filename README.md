@@ -112,6 +112,9 @@ While the ROS 2 stack is entirely parameterized, the CARLA bridge requires manua
 1. **Map/Environment Name:** The `carla_setup/run_bridge.sh` script currently hardcoded to load `town:=FormulaStadium`. You must update this parameter to match the exact name of your CARLA map asset (e.g., `Town04`).
 2. **Vehicle Asset Name:** The `carla_setup/objects.json` file is hardcoded to spawn `"type": "vehicle.centaurus.pyrius_r"`. You must change this blueprint identifier to match your specific 3D vehicle asset (e.g., `vehicle.tesla.model3`).
 3. **Sensor Spatial Configuration:** The `objects.json` file contains the relative XYZ spatial transformations for all sensors (RGB camera, LiDAR, IMU, GNSS). Update these coordinates to match the physical dimensions of your vehicle to ensure accurate sensor fusion.
+
+### Note on Recompiling
+Because the build script utilizes the `--symlink-install` flag, any parameter changes you make inside the `params.yaml` file (or modifications to the Python code) will take effect immediately upon your next launch. You **do not** need to rebuild the workspace when tuning parameters. You only need to re-run the build script if you modify the underlying C++ source code.
 ---
 
 ## Installation & Usage
