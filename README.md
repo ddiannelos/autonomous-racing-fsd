@@ -115,6 +115,7 @@ While the ROS 2 stack is entirely parameterized, the CARLA bridge requires manua
 
 ### Note on Recompiling
 Because the build script utilizes the `--symlink-install` flag, any parameter changes you make inside the `params.yaml` file (or modifications to the Python code) will take effect immediately upon your next launch. You **do not** need to rebuild the workspace when tuning parameters. You only need to re-run the build script if you modify the underlying C++ source code.
+
 ---
 
 ## Installation & Usage
