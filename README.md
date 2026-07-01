@@ -108,10 +108,10 @@ Because this is an active research repository, certain configurations are curren
 Moreover, the repository does not contain the YOLO model weights. Thus, you must train the YOLO model using the provided offline training scripts first and link the output path in the YAML file.
 
 ### CARLA Simulator Configurations
-While the ROS 2 stack is entirely parameterized, the CARLA bridge requires manual setup:
-1. **Map/Environment Name:** The `carla_setup/run_bridge.sh` script specifies which CARLA map the bridge should load. You must update the name of the town parameter in the `ros2 launch` command to match the exact name of the custom Formula Student map asset.
-2. **Vehicle Asset & Sensor Configuration:** The `carla_setup/objects.json` file contains the blueprint identifier for the vehicle, its starting coordinates and the relative spatial transformations for all sensors (RGB camera, LiDAR, IMU, GNSS). You must update the vehicle blueprint name and these coordinates to match your specific 3D vehicle asset to ensure safe spawning an accurate sensor fusion.
-
+While the ROS 2 stack is entirely parameterized, the CARLA bridge requires manual setup. You must modify the files inside the `carla_setup/` directory to match your simulator assets:
+1. **Map/Environment Name:** The `carla_setup/run_bridge.sh` script currently hardcoded to load `town:=FormulaStadium`. You must update this parameter to match the exact name of your CARLA map asset (e.g., `Town04`).
+2. **Vehicle Asset Name:** The `carla_setup/objects.json` file is hardcoded to spawn `"type": "vehicle.centaurus.pyrius_r"`. You must change this blueprint identifier to match your specific 3D vehicle asset (e.g., `vehicle.tesla.model3`).
+3. **Sensor Spatial Configuration:** The `objects.json` file contains the relative XYZ spatial transformations for all sensors (RGB camera, LiDAR, IMU, GNSS). Update these coordinates to match the physical dimensions of your vehicle to ensure accurate sensor fusion.
 ---
 
 ## Installation & Usage
@@ -151,7 +151,7 @@ Execute the training script. This will download the base `yolov8n.pt` weights an
 python3 train.py
 ```
 
-*Note: The training artifacts and best weights will be saved automatically in the cone_detection directory*
+*Note: The training artifacts and best weights will be saved automatically in the cone_detection directory. Once complete, remember to update the model path in `params.yaml` to point your new `best.pt` file.*
 
 **5. Test Predictions:**
 
@@ -160,43 +160,50 @@ To verify the model's accuracy, run the prediction script. It will randomly samp
 python3 predict.py
 ```
 
-### Project Installation and Usage
+### Project Installation & Usage
 
 1. Clone the repository:
-```bash
-git clone https://github.com/ddiannelos/autonomous-racing-fsd
-cd autonomous-racing-fsd
-```
+    ```bash
+    git clone https://github.com/ddiannelos/autonomous-racing-fsd
+    cd autonomous-racing-fsd
+    ```
+
+2. Export the CARLA ROS Bridge path:
+
+   Note: the C++ control nodes depend on `carla_msgs` during compilations. The `setup.sh` script looks for the bridge at `~/ros2_ws/carla-ros-bridge` by default. If you installed it somewhere else, you must export its location before building:
+   ```bash
+   export CARLA_ROS_BRIDGE_ROOT=/path/to/your/carla-ros-bridge
+   ```
 
 2. Build the workspace: Use the provided bash script to automatically resolve ROS 2 dependencies and build the packages.
-```bash
-chmod +x setup.sh
-./setup.sh
-```
+    ```bash
+    chmod +x setup.sh
+    ./setup.sh
+    ```
 
 3. Launch the Stack: You will need three terminals.
 
-**Terminal 1:** Launch CARLA Simulator and press play on the appropriate map.
+    **Terminal 1:** Launch CARLA Simulator and press play on the appropriate map. (Note: The `unfreeze_carla.py` script assumes CARLA is running locally on port 2000.)
 
-**Terminal 2:** Launch the carla-ros-bridge. First copy the three files inside the `carla_setup/` folder (`objects.json`, `run_bridge.sh` and `unfreeze_carla.py`) directly into the root folder of your `carla-ros-bridge` installation. Then run the bridge from there:
-```bash
-cd /path/to/your/carla-ros-bridge
-chmod +x run_bridge.sh
-./run_bridge.sh
-```
+    **Terminal 2:** Launch the carla-ros-bridge. First copy the three files inside the `carla_setup/` folder (`objects.json`, `run_bridge.sh` and `unfreeze_carla.py`) directly into the root folder of your `carla-ros-bridge` installation. Then run the bridge from there:
+    ```bash
+    cd /path/to/your/carla-ros-bridge
+    chmod +x run_bridge.sh
+    ./run_bridge.sh
+    ```
 
-**Terminal 3:** Launch the FSD ROS 2 pipeline.
-```bash
-source install/setup.bash
-ros2 launch bringup simulation.launch.py
-```
+    **Terminal 3:** Launch the FSD ROS 2 pipeline.
+    ```bash
+    source install/setup.bash
+    ros2 launch bringup simulation.launch.py
+    ```
 
-**Terminal 4 (Optional - Visualization):** To view the live sensor fusion, SLAM mapping, Pure Pursuit lookahead and MPC trajectory predictions as seen in the documentation screenshots, launch RViz in a new terminal:
-```bash
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-rviz2 -d src/bringup/rviz/fsd_default.rviz
-```
+    **Terminal 4 (Optional - Visualization):** To view the live sensor fusion, SLAM mapping, Pure Pursuit lookahead and MPC trajectory predictions as seen in the documentation screenshots, launch RViz in a new terminal:
+    ```bash
+    source /opt/ros/humble/setup.bash
+    source install/setup.bash
+    rviz2 -d src/bringup/rviz/fsd_default.rviz
+    ```
 
 
 ### Shutting Down the Simulation
