@@ -12,6 +12,20 @@ The system is designed to drive an autonomous vehicle through an unknown track u
 
 ---
 
+## System in Action
+
+**Phase 1: Exploration Lap**
+> *Mapping the unknown track using Delaunay Triangulation and controlling the vehicle via Pure Pursuit and PID controllers.*
+
+<video src="videos/First_lap.mp4" width="100%" controls autoplay loop muted></video>
+
+**Phase 2: Optimization Lap**
+> *Pushing physical limits using an Elastic Band Line Optimizer, Velocity Profiler and Model Predictive Control (MPC).*
+
+<video src="videos/Rest_of_laps.mp4" width="100%" controls autoplay loop muted></video>
+
+---
+
 ## System Architecture
 The pipeline is built on **ROS 2** and tested in the **CARLA Simulator**. The autonomous navigation relies on a core sensor suite consisting of an **RGB Camera** and a **180° LiDAR** for perception, coupled with an **IMU** and **GNSS** for localization. The software stack is divided into four main subsystems:
 
@@ -232,7 +246,7 @@ This project is licensed under the Apache 2.0 License. See the `LICENSE` file fo
 ---
 
 ## Contact
-**Dimitrios Eleftherios Diannelos**   
+**Dimitrios Eleftherios Diannelos**
 *Electrical and Computer Engineering, University of Thessaly*
 
 Email: [jdian18@gmail.com](mailto:jdian18@gmail.com) <br>
