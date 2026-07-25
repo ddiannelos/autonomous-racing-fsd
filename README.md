@@ -17,12 +17,12 @@ The system is designed to drive an autonomous vehicle through an unknown track u
 **Phase 1: Exploration Lap**
 > *Mapping the unknown track using Delaunay Triangulation and controlling the vehicle via Pure Pursuit and PID controllers.*
 
-<video src="videos/First_lap.mp4" width="100%" controls autoplay loop muted></video>
+![Exploration Lap Highlight](videos/first_lap.gif)
 
 **Phase 2: Optimization Lap**
 > *Pushing physical limits using an Elastic Band Line Optimizer, Velocity Profiler and Model Predictive Control (MPC).*
 
-<video src="videos/Rest_of_laps.mp4" width="100%" controls autoplay loop muted></video>
+![Optimization Lap Highlight](videos/rest_of_laps.gif)
 
 ---
 
